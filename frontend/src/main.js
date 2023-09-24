@@ -18,6 +18,6 @@ const pinia = createPinia();
 const app = createApp(App)
 
 registerPlugins(app)
-app.use(pinia);
+//app.use(pinia);
 
 app.mount('#app')

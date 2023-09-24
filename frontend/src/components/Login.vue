@@ -2,7 +2,7 @@
     <v-card class="mx-auto mt-16" width="80%" height="80%" elevation="7">
         <v-row>
             <v-col cols="5">      
-                <v-card-title><h1 class="display-1 my-10 ml-4">Sign In</h1></v-card-title>
+                <v-card-title><h1 class="display-1 my-10 ml-4">Sign In </h1></v-card-title>
                 <v-card-text class="mt-10 mx-8">
                     <v-form ref="loginForm">
                         <v-text-field
@@ -18,7 +18,7 @@
                         prepend-icon="mdi-lock"
                         append-icon="mdi-eye-off"
                         variant="underlined"
-                        :rules="passwordRule"
+                        
                         v-model="password"
                         @click:append="showPassword = !showPassword"></v-text-field>
                         <v-card-actions>
@@ -49,9 +49,11 @@
     
 </template>
 <script setup>
+//:rules="passwordRule"
 import { useAppStore } from '@/store/app'
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeMount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import StoreApi from '@/services/StoreApi';
 const piniaStore = useAppStore();
 const router = useRouter();
 const showPassword = ref(false);
@@ -82,14 +84,20 @@ const passwordRule = [
     return true; // Validation passed
   },
 ];
-
 async function login(){
     const {valid} = await loginForm.value.validate();
     if(valid)
     {
         loading.value = true;
         try{
-            if(username.value.trim().toUpperCase() === storeUsername.trim().toUpperCase() 
+            const credentials = { username: username.value,
+                                  password: password.value };
+            const response = await StoreApi.login(credentials);
+            if(response.status == 200){
+                piniaStore.loginSuccess = true;
+                router.push({name: 'Home'})
+            }
+            /* if(username.value.trim().toUpperCase() === storeUsername.trim().toUpperCase() 
             && password.value.trim().toUpperCase() === storePassword.trim().toUpperCase())
             {
                 piniaStore.loginSuccess = true;
@@ -97,7 +105,7 @@ async function login(){
             }
             else{
                 piniaStore.setSnackBar("Username or Password doesn't match!!!");
-            }
+            } */
         }
         catch(error)
         {
