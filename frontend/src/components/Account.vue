@@ -257,7 +257,9 @@ const headers = ref([
     { title: 'Phone', align: 'left', key: 'phone'},
     { title: 'Role', align: 'left', key: 'role' },
     { title: 'Added By', align: 'left', key: 'added_by' },    
-    { title: 'Date Added', align: 'left', key: 'date_added' }
+    { title: 'Date Added', align: 'left', key: 'date_added' },
+    { title: 'Modified By', align: 'left', key: 'modified_by' },    
+    { title: 'Modify Date', align: 'left', key: 'date_modified' }
 ]);
 const displayItems = ref([
     {account_id:1, username:'admin', fname:'Vicky', lname:'Nguyen', email:'abc@g.co', phone:'123-456-7890', role:'admin', added_by:'admin', date_added:'10/20/2023'},

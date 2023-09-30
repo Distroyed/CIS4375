@@ -90,11 +90,15 @@ async function login(){
     {
         loading.value = true;
         try{
-            const credentials = { username: username.value,
-                                  password: password.value };
+            const credentials = 
+            {   username: username.value,
+                password: password.value };
             const response = await StoreApi.login(credentials);
             if(response.status == 200){
+                console.log(response.data)
                 piniaStore.loginSuccess = true;
+                //piniaStore.currentUser = response.data;
+                //piniaStore.currentRole = response.data;
                 router.push({name: 'Home'})
             }
             /* if(username.value.trim().toUpperCase() === storeUsername.trim().toUpperCase() 

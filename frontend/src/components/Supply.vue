@@ -16,7 +16,7 @@
     <v-card v-if="selectSupplyType">
     <v-data-table
         :items-per-page="itemsPerPage"
-        item-value="ID"
+        item-value="supply_id"
         :headers="headers"
         :loading="loading"
         :search="search"
@@ -38,8 +38,9 @@
                             color="green"
                             prepend-icon="mdi-plus"
                             size="small"
+                            class="mr-5"
                             >
-                                Add {{ selectSupplyType }}
+                                Add More
                             </v-btn>
                     <v-spacer></v-spacer>
                     <v-spacer></v-spacer>
@@ -77,6 +78,7 @@
                 color="blue"
                 icon="mdi-magnify"
                 size="small"
+                @click="viewPriceHist(item)"
                 :disabled="loading">
             </v-icon>  
             <v-icon
@@ -102,11 +104,11 @@ const itemsPerPage = ref(25);
 const piniaStore = useAppStore();
 const headers = ref([
     { title: 'Action', align: 'center', key: 'Action'},
-    { title: 'Ingredient', align: 'left', key: 'item_name'  },
-    { title: 'Amount', align: 'left', key: 'AMOUNT'  },
-    { title: 'Reorder Amount', align: 'left', key: 'REORDER_POINT'},
+    { title: 'Item Name', align: 'left', key: 'item_name'  },
+    { title: 'Quantity', align: 'left', key: 'quantity'  },
+    { title: 'Reorder Amount', align: 'left', key: 'reorder_point '},
     { title: 'Vendor', align: 'left', key: 'VENDOR' },
-    { title: 'Current Price', align: 'left', key: 'PRICE' },    
+    { title: 'Note', align: 'left', key: 'Notes' },    
 ]);
 const displayItems = computed(() =>{
     if(selectSupplyType.value == 'Sushi'){
@@ -156,4 +158,49 @@ const otherItems = ref([
     {ID:10, item_name:'Corn Kernnels',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
 ]);
 const selectSupplyType = ref();
+
+//View Price History
+const priceHistItem = ref({});
+async function viewPriceHist(item){
+    console.log(item.raw);
+}
+
+//Export To CSV file
+const exportItem = ref([]);
+function exportCSV(){
+    exportItem.value = displayItems.value;
+    const csvString = [
+        [
+            'Username',
+            'First Name',
+            'Last Name',
+            'Email',
+            'Phone',
+            'Role',
+            'Added By',
+            'Date Added'
+        ],
+        ...exportItem.value.map( item => [
+            item.username,
+            item.fname,
+            item.lname,
+            item.email,
+            item.phone,
+            item.role,
+            item.added_by,
+            item.Enabled,
+            item.date_added
+        ])
+    ]
+    .map(e => e.join(","))
+    .join("\n");
+    const download = document.createElement('a');
+    const dateTimeNow = new Date().toISOString().slice(0,-1);
+    download.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
+    download.target = '_blank';
+    download.download = 'Account_on_' + dateTimeNow + '.csv';
+    download.click();
+}
+
+
 </script>

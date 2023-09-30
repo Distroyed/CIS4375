@@ -32,6 +32,12 @@ const routes = [
     component: () => import('@/components/Account.vue'),
     meta: { requiresAuth: true },
   },
+  {
+    path: '/order',
+    name: 'Order',
+    component: () => import('@/components/Order.vue'),
+    //meta: { requiresAuth: true },
+  },
 ];
 
 const router = createRouter({

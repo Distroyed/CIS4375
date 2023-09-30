@@ -28,6 +28,7 @@
         </span> - <span class="font-weight-bold">Food Inventory Application </span></span> 
     </v-app-bar-title>
 <!--     <span class="text-button mr-4">{{ winUser }}</span> -->
+<span class="text-button mr-4">{{ piniaStore.username }}</span>
     </v-app-bar>
         <v-navigation-drawer
           v-model="drawer"
@@ -61,7 +62,11 @@ const router = useRouter();
 const piniaStore = useAppStore();
 const drawer = ref(false);
 const menuItems = ref([
-  {title : 'Home', icon : 'mdi-home'},
+  {title : 'Home', icon : 'mdi-home'},  
+  {title : 'Supply', icon : 'mdi-apps-box'},
+  {title : 'Vendor', icon : 'mdi-store-outline'},
+  {title : 'Account', icon : 'mdi-account-box-outline'},
+  {title : 'Order', icon : 'mdi-clipboard-list-outline'},
   {title : 'LogOut', icon : 'mdi-logout'},
 ]);
 //Function to handle menu item selection
@@ -70,6 +75,15 @@ async function selectedMenuItem(item){
   {
     case 'Home':
       router.push({name: 'Home'});
+      break;
+    case 'Supply':
+      router.push({name: 'Supply'});
+      break;
+    case 'Vendor':
+      router.push({name: 'Vendor'});
+      break;
+    case 'Account':
+      router.push({name: 'Account'});
       break;
     case 'LogOut':
       piniaStore.loginSuccess = false;
