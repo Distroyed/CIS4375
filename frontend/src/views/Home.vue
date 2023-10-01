@@ -85,6 +85,9 @@ async function switchViews(id){
       case 2:
           router.push({name : 'Account'});
           break;
+      case 3:
+          router.push({name : 'Order'});
+          break;
       default:
           {break;}
   }

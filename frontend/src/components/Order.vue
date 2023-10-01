@@ -1,5 +1,6 @@
 <template>
 <v-container class="mt-10 pa-10" fluid fill-height>
+    <v-row justify="center">
     <v-responsive class="d-flex fill-height ma-5">
         <v-alert
         color="info"
@@ -175,6 +176,7 @@
         </v-form>
     </v-card>
     </v-responsive>
+</v-row>
 </v-container>
 </template>
 <script setup>
@@ -223,9 +225,9 @@ const updatedOtherItems = ref([]);
 const updatedProduceItems = ref([]);
 onBeforeMount( async() => {
     try{
-        updatedSushiItems.value = [...originalSushiItems.value];
-        updatedProduceItems.value = [...originalProduceItem.value];
-        updatedOtherItems.value = [...originalOtherItems.value];
+        updatedSushiItems.value = JSON.parse(JSON.stringify(originalSushiItems.value));
+        updatedProduceItems.value = JSON.parse(JSON.stringify(originalProduceItem.value));
+        updatedOtherItems.value = JSON.parse(JSON.stringify(originalOtherItems.value));
     }
     catch(error){
         if(error.message){
@@ -234,6 +236,7 @@ onBeforeMount( async() => {
         else piniaStore.setSnackBar("Error in loading data, please contact IT for support!");
     }
 })
+
 const vendors = ref([
     {vendor_id:1, vendor_name:'Hui Lin Inc', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
     {vendor_id:2, vendor_name:'Ocean Wave', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
@@ -241,9 +244,9 @@ const vendors = ref([
 ]);
 
 function undo(){
-    updatedSushiItems.value = originalSushiItems.value;
-    updatedProduceItems.value = originalProduceItem.value;
-    updatedOtherItems.value = originalOtherItems.value;
+    updatedSushiItems.value = JSON.parse(JSON.stringify(originalSushiItems.value));
+    updatedProduceItems.value = JSON.parse(JSON.stringify(originalProduceItem.value));
+    updatedOtherItems.value = JSON.parse(JSON.stringify(originalOtherItems.value));
 }
 async function saveData(){
     console.log(updatedSushiItems.value);

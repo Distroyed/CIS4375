@@ -1,6 +1,26 @@
 <template>
     <v-container class="mt-10 pa-10" fluid fill-height>
-    <v-row justify="center">
+    <v-row class="justify-center align-center text-center">
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Sushi</v-card-title>
+                <span class="text-orange-darken-1 text-h4 font-weight-light">{{ sushiItems.length }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Produce</v-card-title>
+                <span class="text-red-darken-1 text-h4 font-weight-light">{{ produceItem.length }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Other</v-card-title>
+                <span class="text-purple-darken-1 text-h4 font-weight-light">{{ otherItems.length }}</span>
+            </v-card>
+        </v-col>
+    </v-row>
+    <v-row justify="center" class="mt-10">
         <v-col cols="4">
         <v-autocomplete
         v-model="selectSupplyType"
@@ -9,6 +29,7 @@
         density="compact"
         variant="underlined"
         :items="['Sushi','Produce','Other']"
+        prepend-icon="mdi-format-list-bulleted-type"
         clearable></v-autocomplete>
     </v-col>
     </v-row>
@@ -68,19 +89,19 @@
         <template v-slot:item.Action="{ item }">
             <v-icon
                 class="me-2"
-                color="green"
-                icon="mdi-pencil"
-                size="small"
-                :disabled="loading">
-            </v-icon>   
-            <v-icon
-                class="me-2"
                 color="blue"
                 icon="mdi-magnify"
                 size="small"
                 @click="viewPriceHist(item)"
                 :disabled="loading">
-            </v-icon>  
+            </v-icon>
+            <v-icon
+                class="me-2"
+                color="green"
+                icon="mdi-pencil"
+                size="small"
+                :disabled="loading">
+            </v-icon>   
             <v-icon
                 class="me-2"
                 color="red"
