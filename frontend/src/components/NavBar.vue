@@ -27,6 +27,7 @@
         Sushi
         </span> - <span class="font-weight-bold">Food Inventory Application </span></span> 
     </v-app-bar-title>
+    <span class="text-button mr-4" v-if="piniaStore.loginSuccess && piniaStore.currentUserName">Welcome, {{ piniaStore.currentUserName }}</span>
 <!--     <span class="text-button mr-4">{{ winUser }}</span> -->
 <span class="text-button mr-4">{{ piniaStore.username }}</span>
     </v-app-bar>
@@ -54,8 +55,8 @@
 </template>
 
 <script setup>
-import { useAppStore } from '@/store/app'
-const store = useAppStore()
+import { useAppStore } from '@/store/app';
+const store = useAppStore();
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
@@ -85,15 +86,18 @@ async function selectedMenuItem(item){
     case 'Account':
       router.push({name: 'Account'});
       break;
+    case 'Order':
+      router.push({name: 'Order'});
+      break;
     case 'LogOut':
       piniaStore.loginSuccess = false;
+      piniaStore.currentRole='';
+      piniaStore.currentUser='';
+      piniaStore.currentUserName='';
       router.push({name: 'Login'});
       break;
     default:
       break;
   }
-}
-async function goHome(){
-  router.push({name: 'Home'});
 }
 </script>

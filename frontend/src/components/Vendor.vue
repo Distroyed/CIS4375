@@ -1,6 +1,32 @@
 <template>
     <v-container class="mt-10 pa-10" fluid fill-height>
-        <v-card >
+        <v-row class="justify-center align-center text-center">
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Order By Phone</v-card-title>
+                <span class="text-orange-darken-1 text-h4 font-weight-light">{{ phoneCount }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Order By Email</v-card-title>
+                <span class="text-red-darken-1 text-h4 font-weight-light">{{emailCount}}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Order By Text</v-card-title>
+                <span class="text-purple-darken-1 text-h4 font-weight-light">{{ textCount }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Order By Other</v-card-title>
+                <span class="text-green-darken-1 text-h4 font-weight-light">{{ otherCount }}</span>
+            </v-card>
+        </v-col>
+    </v-row>
+    <v-card class="mt-10">
     <v-data-table
         :items-per-page="itemsPerPage"
         item-value="vendor_id"
@@ -10,7 +36,7 @@
         :items="displayItems"
         density="compact"
         fixed-header
-        class="elevation-5">
+        class="elevation-6">
         <!-- Toolbar group -->
         <template v-slot:top>
                 <v-toolbar flat color="white">
@@ -25,6 +51,7 @@
                             color="green"
                             prepend-icon="mdi-plus"
                             size="small"
+                            @click="addOrEditVendor()"
                             >
                                 Add Vendor
                             </v-btn>
@@ -92,81 +119,84 @@
                                 <v-col cols="4">
                                     <v-text-field
                                     v-model="vendorItem.contact_name"
-                                    label="Address"
+                                    label="Contact Name"
                                     color="primary"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="4">
-                                    <v-text-area
+                                    <v-textarea
                                     v-model="vendorItem.notes"
                                     label="Notes"
                                     color="primary"
                                     variant="underlined"
                                     clearable
                                     rows="2"
-                                    counter
-                                    ></v-text-area>
+                                    density="compact"
+                                    :counter= "' 250'"
+                                    ></v-textarea>
                                 </v-col>
                             </v-row>          
                             <v-row class="mx-6 justify-center align-center">
                                 <v-col cols="3">
                                     <v-text-field
                                     v-model="vendorItem.address"
-                                    label="Vendor Name"
-                                    color="primary"
-                                    variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="3">
-                                    <v-text-field
-                                    v-model="vendorItem.city"
                                     label="Address"
                                     color="primary"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="3">
                                     <v-text-field
+                                    v-model="vendorItem.city"
+                                    label="City"
+                                    color="primary"
+                                    variant="underlined"></v-text-field>
+                                </v-col>
+                                <v-col cols="3">
+                                    <v-text-field
                                     v-model="vendorItem.state_name"
-                                    label="Last Name"
+                                    label="State"
                                     color="primary"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="3">
                                     <v-text-field
                                     v-model="vendorItem.ZIP"
-                                    label="Last Name"
+                                    label="Zip"
                                     color="primary"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                             </v-row>                    
                             <v-row class="mx-6">
                                 <v-col cols="4">
+                                    <v-autocomplete
+                                    v-model="vendorItem.ordering_channel"
+                                    label="Ordering Chanel"
+                                    color="primary"
+                                    clearable
+                                    :items="['Text','Email','Phone', 'Other']"
+                                    :rules="[ v => !!v || 'Order Channel is required']"
+                                    variant="underlined"></v-autocomplete>
+                                </v-col>
+                                <v-col cols="4" v-if="vendorItem.ordering_channel === 'Email'">
                                     <v-text-field
+                                    
                                     v-model="vendorItem.email"
                                     label="Email"
                                     color="primary"
                                     :rules="emailRule"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
-                                    <v-text-field
+                                <v-col cols="4" v-if="vendorItem.ordering_channel === 'Phone' || vendorItem.ordering_channel === 'Text'">
+                                    <v-text-field                                    
                                     v-model="vendorItem.phone"
                                     label="Phone"
                                     color="primary"
                                     :rules="phoneRule"
                                     variant="underlined"></v-text-field>
-                                </v-col>
-                                <v-col cols="4">
-                                    <v-autocomplete
-                                    v-model="vendorItem.ordering_channel"
-                                    label="Ordering Chanel"
-                                    color="primary"
-                                    clearable
-                                    :items="['Text','Email','']"
-                                    variant="underlined"></v-autocomplete>
-                                </v-col>
+                                </v-col>                                
                             </v-row>       
                         </v-form>
-                            <v-row justify="center">
+                            <v-row justify="center" class="mt-8">
                                 <v-card-actions>
                                     <v-btn
                                     variant="flat"
@@ -235,7 +265,7 @@
             </v-card>
         </v-dialog>
         </v-card>
-    </v-container>
+</v-container>
 </template>
 <script setup>
 import { useAppStore } from '@/store/app'
@@ -261,6 +291,34 @@ const headers = ref([
 const displayItems = ref([
     {vendor_id:1, vendor_name:'Hui Lin Inc', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
 ]);
+
+const phoneCount = computed(() => {
+    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "PHONE").length;
+});
+const textCount = computed(() => {
+    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "TEXT").length;
+});
+const emailCount = computed(() => {
+    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "EMAIL" || item.ordering_channel.trim().toUpperCase() === "E-MAIL").length;
+});
+const otherCount = computed(() => {
+    return displayItems.value.length - phoneCount.value - textCount.value - emailCount.value;
+});
+//Setup rules:
+const phoneRule = [
+  v => !!v || 'Field is required',
+  value => {    
+    const pattern = /^\d{3}-\d{3}-\d{4}$/;
+    return (pattern.test(value) || value===null )|| 'Invalid Phone Number Format - XXX-XXX-XXXX';
+  }
+];
+const emailRule = [
+    v => !!v || 'Field is required',
+    value => {
+        const pattern = /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
+        return pattern.test(value) || 'Invalid Email Format'
+    }
+];
 
 //Open Add or Edit Account Dialog
 const addOrEditForm = ref(null);

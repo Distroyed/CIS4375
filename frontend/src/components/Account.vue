@@ -1,6 +1,26 @@
 <template>
     <v-container class="mt-10 pa-10" fluid fill-height>
-        <v-card >
+        <v-row class="justify-center align-center text-center">
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Admin Users</v-card-title>
+                <span class="text-orange-darken-1 text-h4 font-weight-light">{{ adminCount }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">Edit Users</v-card-title>
+                <span class="text-red-darken-1 text-h4 font-weight-light">{{ editCount }}</span>
+            </v-card>
+        </v-col>
+        <v-col cols="2">
+            <v-card elevation="1" class="pb-3">
+                <v-card-title class="text-overline">View User</v-card-title>
+                <span class="text-purple-darken-1 text-h4 font-weight-light">{{ viewCount }}</span>
+            </v-card>
+        </v-col>
+    </v-row>
+        <v-card class="mt-10">
     <v-data-table
         :items-per-page="itemsPerPage"
         item-value="account_id"
@@ -265,6 +285,15 @@ const displayItems = ref([
     {account_id:1, username:'admin', fname:'Vicky', lname:'Nguyen', email:'abc@g.co', phone:'123-456-7890', role:'admin', added_by:'admin', date_added:'10/20/2023'},
 ]);
 
+const adminCount = computed(() => {
+    return displayItems.value.filter(item => item.role.trim().toUpperCase() === "ADMIN").length;
+});
+const editCount = computed(() => {
+    return displayItems.value.filter(item => item.role.trim().toUpperCase() === "EDIT").length;
+});
+const viewCount = computed(() => {
+    return displayItems.value.filter(item => item.role.trim().toUpperCase() === "VIEW").length;
+});
 //Setup rules:
 const phoneRule = [
   v => !!v || 'Field is required',
