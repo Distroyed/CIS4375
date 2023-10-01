@@ -1,10 +1,17 @@
 <template>
-    <v-card class="mx-auto mt-16 text-center align-center justify-center" width="25%" elevation="7"  style="background-color: rgba(255, 255, 255, 0.8);">
+    <v-card class="mx-auto mt-16" width="25%" elevation="7"  style="background-color: rgba(255, 255, 255, 0.8);">
         <v-row>
             <v-col cols="1"></v-col>
             <v-col cols="10">      
                 <v-card-title class="text-center align-center justify-center"><h1 class="display-1 my-10 ml-4">Login </h1></v-card-title>
-                <v-card-text class="mt-10 mx-8 pt-10">
+                <v-row v-if="errorLogin" class="my-6 mx-8">
+                        <v-alert
+                        color="error"
+                        icon="$error"
+                        text="We can't find that username and password. You can select 'Forgot Password' or try again."
+                        ></v-alert>
+                    </v-row>
+                <v-card-text class="mt-10 mx-8 pt-10">                    
                     <v-form ref="loginForm">
                         <v-row>
                         <v-text-field
@@ -92,6 +99,7 @@ const passwordRule = [
     return true; // Validation passed
   },
 ];
+const errorLogin= ref(false);
 async function login(){
     const {valid} = await loginForm.value.validate();
     if(valid)
@@ -102,33 +110,33 @@ async function login(){
             {   username: username.value,
                 password: password.value };
             const response = await StoreApi.login(credentials);
+            console.log(response);
             if(response.status == 200){
-                console.log(response.data)
                 piniaStore.loginSuccess = true;
-                //piniaStore.currentUser = response.data;
-                //piniaStore.currentRole = response.data;
+                if(response.data.role){
+                    piniaStore.currentRole = response.data.role;
+                }
+                piniaStore.currentUserName = username.value;                
+                console.log(piniaStore.loginSuccess);
                 router.push({name: 'Home'})
             }
-            /* if(username.value.trim().toUpperCase() === storeUsername.trim().toUpperCase() 
-            && password.value.trim().toUpperCase() === storePassword.trim().toUpperCase())
-            {
-                piniaStore.loginSuccess = true;
-                router.push({name: 'Home'})
-            }
-            else{
-                piniaStore.setSnackBar("Username or Password doesn't match!!!");
-            } */
         }
         catch(error)
         {
-            if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-                else piniaStore.setSnackBar("Error In Assigning Account Owner. Please Contact IT For Support");
+            console.log(error);
+            if(error.response.status === 404 || error.response.status === 401){
+                errorLogin.value = true;
+            }
+            //if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+            else if(error.response.status !== 200) piniaStore.setSnackBar("Error In Assigning Account Owner. Please Contact IT For Support");
+        }
+        finally{
+            loading.value = false;
         }
     }
     else
     {
       piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
-    }
-    
+    }    
 }
 </script>

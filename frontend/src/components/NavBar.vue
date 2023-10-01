@@ -27,7 +27,7 @@
         Sushi
         </span> - <span class="font-weight-bold">Food Inventory Application </span></span> 
     </v-app-bar-title>
-    <span class="text-button mr-4" v-if="piniaStore.currentUser">Welcome, </span>
+    <span class="text-button mr-4" v-if="piniaStore.loginSuccess && piniaStore.currentUserName">Welcome, {{ piniaStore.currentUserName }}</span>
 <!--     <span class="text-button mr-4">{{ winUser }}</span> -->
 <span class="text-button mr-4">{{ piniaStore.username }}</span>
     </v-app-bar>
