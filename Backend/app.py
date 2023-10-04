@@ -207,4 +207,4 @@ def ForgotPassword():
         return jsonify({'message': 'Failed to send password reset email', 'error': error_message}), 500
 
 if __name__ == '__main__':
-    app.run(port=5050)
+    app.run(port=5000)
