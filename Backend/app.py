@@ -43,7 +43,7 @@ for data in user_data:
     execute_query(link_up, user_query)
 
 #uses the GET command to see if postman can verify the server connects
-@app.route('/', methods=['GET']) #default url (http://127.0.0.1:5050/)
+@app.route('/', methods=['GET']) #default url (http://127.0.0.1:5000/)
 def home():
     return '<h1> Welcome to the memes. </h1>' #message to confirm the code has connected with route
 
@@ -188,7 +188,7 @@ def ForgotPassword():
         msg['Subject'] = "Password Reset"
 
         #generate a password reset link (you should replace this with your actual reset link)
-        reset_link = "http://127.0.0.1:5050/ChangePassword"
+        reset_link = "http://127.0.0.1:5000/ChangePassword"
         message_body = f"Hello,\n\nTo reset your password, click the following link:\n{reset_link}"
 
         #attach the message body to the email
