@@ -23,7 +23,10 @@
                         @click:append="showPassword = !showPassword"></v-text-field>
                         <v-card-actions>
                             <v-btn color="indigo-darken-3" variant="flat" block class="mt-4" :loading="loading" @click="login">
-                                Sign In</v-btn>                                                 
+                                Sign In</v-btn> 
+                            <a class="mt-3" @click="forgotPassword">Forgot Password</a> <!-- Added Forgot Password (still need to implement logic) -->
+
+
                         </v-card-actions>
                         <v-row class="mt-2">
                             <v-checkbox
@@ -45,8 +48,7 @@
                 ></v-img>
             </v-col>
         </v-row>
-    </v-card>
-    
+    </v-card> 
 </template>
 <script setup>
 //:rules="passwordRule"
