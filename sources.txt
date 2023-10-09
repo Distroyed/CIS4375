@@ -1,0 +1,38 @@
+Rayomand Hormuzdi-
+Done:
+POST Api: ‘login’ 
+GET Api: ‘rolecheck’ 
+POST Api: ‘CreateLogin’ 
+POST Api: ‘DeleteUser’ 
+POST Api: ‘reset-password/update’ 
+HashPassword.py file
+
+Working on:
+POST Api:’forgot-password’ 
+POST Api:’forgot-password/answer’ 
+GET Api: ‘reset-password/get/{$link_id}’ 
+PUT Api: ‘vendor/edit’ 
+PUT Api: ‘supply/edit’ 
+PUT Api: ‘order’ 
+
+James Freeborn-
+Done:
+POST Api: ‘supply/add’
+POST Api: ‘vendor/add’
+POST Api: ‘account/add’
+
+Working on:
+DELETE Api: ‘supply/delete/{$supply_id}
+DELETE Api: ‘account/delete/${vendor_id}’
+DELETE Api: ‘account/delete/{$account_id}’
+
+Cesar Hernandez- 
+Done:
+GET Api: ‘account/get-all’ 
+GET Api: ‘state’ 
+GET Api: ‘item-type/get-all’ 
+GET Api: ‘vendor/get-all’ 
+GET Api: ‘supply/get-all’ 
+Working on:
+GET Api: ‘supply/price-track/${supply_id}'
+
