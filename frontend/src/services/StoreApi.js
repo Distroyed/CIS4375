@@ -7,9 +7,10 @@ export default {
     },
     //Login
     login(object){
-        return Api().post('login', object)
+        return Api().post('login', object);
     },
-    getWelcome(){
-        return Api().get('')
-    }  
+    //Forgot Password: Verify Email
+    forgotPassword(email){
+        return Api().post('forgot-password', email);
+    }
 }

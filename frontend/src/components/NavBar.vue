@@ -35,6 +35,7 @@
           v-model="drawer"
           location="left"
           temporary
+          v-if="piniaStore.loginSuccess"
         >
         <v-list nav>
             <v-list-item
@@ -43,6 +44,7 @@
               :value="item"
               color="primary"
               @click="selectedMenuItem(item)"
+              
             >
               <template v-slot:prepend>
                 <v-icon :icon="item.icon"></v-icon>

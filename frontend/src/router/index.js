@@ -36,7 +36,23 @@ const routes = [
     path: '/order',
     name: 'Order',
     component: () => import('@/components/Order.vue'),
-    //meta: { requiresAuth: true },
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/reset-password/:id',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPassword.vue'),
+    beforeEnter: (to, from, next) => {
+      console.log(to)
+      // Check if the 'id' parameter is present in the route
+      if (to.params.id) {
+        // If 'id' parameter is present, allow the navigation to the ResetPassword view
+        next();
+      } else {
+        // If 'id' parameter is not present, redirect to the login page
+        next({ name: 'Login' });
+      }
+    },
   },
 ];
 
@@ -63,6 +79,7 @@ router.beforeEach((to, from, next) => {
   } else {
     // For routes that do not require authentication, allow the navigation
     next();
+
   }
 });
 
