@@ -205,6 +205,193 @@ def ForgotPassword():
     except Exception as e:
         error_message = str(e)
         return jsonify({'message': 'Failed to send password reset email', 'error': error_message}), 500
+# Function to get the current user's role
+def get_current_user_role(username):
+    # Query the database for the user's role
+    cursor = link_up.cursor(dictionary=True)
+    cursor.execute("SELECT role FROM users WHERE username = %s", (username,))
+    result = cursor.fetchone()
+
+    if result:
+        return result['role']
+    else:
+        return None  # Return None if the user is not found
+
+# Function to get the current user's username
+def get_current_user_username():
+    data = request.get_json()
+    username = data.get('username')
+    
+    return username
+
+# Function to add a new account
+def add_account():
+    # Get the JSON from the request
+    data = request.get_json()
+
+    # Extract data from the JSON object
+    username = data.get('username')
+    password = data.get('password')
+    fname = data.get('fname')
+    lname = data.get('lname')
+    phone = data.get('phone')
+    role = data.get('role')
+
+    # Check if any of the required fields is missing in the JSON
+    if not username or not password or not fname or not lname or not phone or not role:
+        return jsonify({'message': 'All fields are required'}), 400
+
+    # Retrieve the current user's username from the session 
+    current_user_username = get_current_user_username()
+
+    # If the current user is not authenticated, return a 401 
+    if not current_user_username:
+        return jsonify({'message': 'User not authenticated'}), 401
+
+    # Get the current user's role based on their username
+    current_user_role = get_current_user_role(current_user_username)
+    
+    # Check if the current user has the 'Admin' role
+    if current_user_role != 'Admin':
+        return jsonify({'message': 'Only Admins can add accounts'}), 403
+    
+    try:
+        # Hash the password before storing it in the db 
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+
+        # SQL query to insert the account into the 'ACCOUNT' table
+        insert_query = "INSERT INTO ACCOUNT (username, password_hash, fname, lname, phone, role, added_by) " \
+                       "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+
+        # Execute the SQL query with the provided data
+        cursor.execute(insert_query, (username, password_hash, fname, lname, phone, role, current_user_username))
+
+        # Commit the transaction to save the changes in the db
+        link_up.commit()
+
+        # Get the last inserted row's ID (account_id)
+        account_id = cursor.lastrowid
+
+        # Return a JSON response with the account_id and a 201 Created status code
+        return jsonify({'account_id': account_id}), 201
+
+    except Exception as e:
+        # If there's an exception during the db operation, return an error message
+        return jsonify({'message': f'Failed to add account: {str(e)}'}), 500
+
+# Add vendor API
+@app.route('/vendor/add', methods=['POST'])
+def add_vendor():
+    data = request.get_json()
+    vendor_name = data.get('vendor_name')
+    address = data.get('address')
+    city = data.get('city')
+    state_abbr = data.get('state_abbr')
+    ZIP = data.get('ZIP')
+    contact_name = data.get('contact_name')
+    contact_phone = data.get('contact_phone')
+    order_phone = data.get('order_phone')
+    email = data.get('email')
+    ordering_channel = data.get('ordering_channel')
+    notes = data.get('notes')
+
+    if not vendor_name or not address or not city or not state_abbr or not ZIP or not contact_name or not contact_phone or not order_phone or not email or not ordering_channel:
+        return jsonify({'message': 'All fields are required'}), 400
+
+    # Retrieve the current user's username from the session (you need to implement this part)
+    current_user_username = get_current_user_username()
+
+    # If the current user is not authenticated, return a 401 Unauthorized response
+    if not current_user_username:
+        return jsonify({'message': 'User not authenticated'}), 401
+
+    # Get the current user's role based on their username
+    current_user_role = get_current_user_role(current_user_username)
+    
+    # Check if the current user has the 'Admin' or 'Edit' role
+    if current_user_role not in ['Admin', 'Edit']:
+        return jsonify({'message': 'Only Admins or Editors can add vendors'}), 403
+    
+    try:
+        # SQL query to insert the vendor into the 'VENDOR' table
+        insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
+                       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+
+        # Execute the SQL query with the provided data
+        cursor.execute(insert_query, (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, current_user_username))
+
+        # Commit the transaction to save the changes in the database
+        link_up.commit()
+
+        # Get the last inserted row's ID (Vendor_id)
+        vendor_id = cursor.lastrowid
+
+        # Return a JSON response with the Vendor_id and a 201 Created status code
+        return jsonify({'Vendor_id': vendor_id}), 201
+
+    except Exception as e:
+        # If there's an exception during the database operation, return an error message
+        return jsonify({'message': f'Failed to add vendor: {str(e)}'}), 500
+
+# Add supply API
+@app.route('/supply/add', methods=['POST'])
+def add_supply():
+    data = request.get_json()
+    item_name = data.get('item_name')
+    item_type_id = data.get('item_type_id')
+    item_type_desc = data.get('item_type_desc')
+    vendor_id = data.get('vendor_id')
+    reorder_point = data.get('reorder_point')
+    added_by = data.get('added_by')
+    price = data.get('price')
+
+    if not item_name or not item_type_id or not item_type_desc or not vendor_id or not reorder_point or not added_by or not price:
+        return jsonify({'message': 'All fields are required'}), 400
+
+    # Retrieve the current user's username from the session (you need to implement this part)
+    current_user_username = get_current_user_username()
+
+    # If the current user is not authenticated, return a 401 Unauthorized response
+    if not current_user_username:
+        return jsonify({'message': 'User not authenticated'}), 401
+
+    # Get the current user's role based on their username
+    current_user_role = get_current_user_role(current_user_username)
+    
+    # Check if the current user has the 'Admin' or 'Edit' role
+    if current_user_role not in ['Admin', 'Edit']:
+        return jsonify({'message': 'Only Admins or Editors can add supplies'}), 403
+    
+    try:
+        # SQL query to insert the supply into the 'SUPPLY' table
+        supply_insert_query = "INSERT INTO SUPPLY (item_name, item_type_id, item_type_desc, vendor_id, reorder_point, added_by) " \
+                              "VALUES (%s, %s, %s, %s, %s, %s)"
+
+        # Execute the SQL query with the provided data
+        cursor.execute(supply_insert_query, (item_name, item_type_id, item_type_desc, vendor_id, reorder_point, added_by))
+
+        # Commit the transaction to save the changes in the database
+        link_up.commit()
+
+        # Get the last inserted row's ID (Supply_id)
+        supply_id = cursor.lastrowid
+
+        # SQL query to insert price information into the 'PRICE' table
+        price_insert_query = "INSERT INTO PRICE (price, supply_id, added_by) VALUES (%s, %s, %s)"
+
+        # Execute the SQL query with price data
+        cursor.execute(price_insert_query, (price, supply_id, added_by))
+
+        # Commit the price transaction
+        link_up.commit()
+
+        # Return a JSON response with the Supply_id and a 201 Created status code
+        return jsonify({'Supply_id': supply_id}), 201
+
+    except Exception as e:
+        # If there's an exception during the database operation, return an error message
+        return jsonify({'message': f'Failed to add supply: {str(e)}'}), 500
+
 
 if __name__ == '__main__':
     app.run(port=5000)
