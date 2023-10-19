@@ -275,8 +275,7 @@ def add_vendor():
     email = data.get('email')
     ordering_channel = data.get('ordering_channel')
     notes = data.get('notes')
-    role = data.get('role')
-    current_user_username = data.get('username')
+  
 
 
     if not vendor_name or not address or not city or not state_abbr or not ZIP or not contact_name or not contact_phone or not order_phone or not email or not ordering_channel:
@@ -284,34 +283,32 @@ def add_vendor():
 
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if not current_user_username:
+    if 'username' in session and 'role' in session and session['role'] != 'admin':
         return jsonify({'message': 'User not authenticated'}), 401
 
     
     # Check if the current user has the 'Admin' or 'Edit' role
-    if role not in ['Admin', 'Edit']:
-        return jsonify({'message': 'Only Admins or Editors can add vendors'}), 403
-    
-    try:
-        # SQL query to insert the vendor into the 'VENDOR' table
-        insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
-                       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    if 'username' in session and 'role' in session and session['role'] == 'admin':
+        try:
+            # SQL query to insert the vendor into the 'VENDOR' table
+            insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
-        # Execute the SQL query with the provided data
-        cursor.execute(insert_query, (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, current_user_username))
+            # Execute the SQL query with the provided data
+            cursor.execute(insert_query, (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, current_user_username))
 
-        # Commit the transaction to save the changes in the database
-        link_up.commit()
+            # Commit the transaction to save the changes in the database
+            link_up.commit()
 
-        # Get the last inserted row's ID (Vendor_id)
-        vendor_id = cursor.lastrowid
+            # Get the last inserted row's ID (Vendor_id)
+            vendor_id = cursor.lastrowid
 
-        # Return a JSON response with the Vendor_id and a 201 Created status code
-        return jsonify({'Vendor_id': vendor_id}), 201
+            # Return a JSON response with the Vendor_id and a 201 Created status code
+            return jsonify({'Vendor_id': vendor_id}), 201
 
-    except Exception as e:
-        # If there's an exception during the database operation, return an error message
-        return jsonify({'message': f'Failed to add vendor: {str(e)}'}), 500
+        except Exception as e:
+            # If there's an exception during the database operation, return an error message
+            return jsonify({'message': f'Failed to add vendor: {str(e)}'}), 500
 
 # Add supply API
 @app.route('/supply/add', methods=['POST'])
@@ -324,25 +321,15 @@ def add_supply():
     reorder_point = data.get('reorder_point')
     added_by = data.get('added_by')
     price = data.get('price')
-    username = data.get('username')
-    role = data.role('role')
+ 
     
 
     if not item_name or not item_type_id or not item_type_desc or not vendor_id or not reorder_point or not added_by or not price:
         return jsonify({'message': 'All fields are required'}), 400
 
-    # Retrieve the current user's username from the session (you need to implement this part)
-    current_user_username =  username
-
-    # If the current user is not authenticated, return a 401 Unauthorized response
-    if not current_user_username:
-        return jsonify({'message': 'User not authenticated'}), 401
-
-    # Get the current user's role based on their username
-    current_user_role = role(current_user_username)
     
-    # Check if the current user has the 'Admin' or 'Edit' role
-    if current_user_role not in ['Admin', 'Edit']:
+
+    if 'username' in session and 'role' in session and session['role'] != 'admin':
         return jsonify({'message': 'Only Admins or Editors can add supplies'}), 403
     
     try:
