@@ -74,37 +74,6 @@ for data in account_data:
 def home():
     return '<h1> Welcome to the memes. </h1>' #message to confirm the code has connected with route
 
-#login api
-#@app.route('/login', methods=['POST'])
-#def User_Login():
-#    data = request.get_json()
-#    username = data.get('username')
-#    password = data.get('password')
-
-#    if not username or not password:
-#       return jsonify({'message': 'Username and password are required'}), 400
-
-#    #query the database for the ACCOUNT password hash
-#    cursor = link_up.cursor(dictionary=True)
-#    cursor.execute("SELECT password, role, fname, lname FROM ACCOUNT WHERE username = %s", (username,))
-#    result = cursor.fetchone()
-
-#    if result:
-#        stored_password_hash = result['password']
-#        input_password_hash = hashlib.sha256(password.encode()).hexdigest()
-
-#       if stored_password_hash == input_password_hash:
-#           session['username'] = username
-#            session['role'] = result['role']
-#            specific_user_role = result['role']
-#            specific_first_name = result['fname']
-#            specific_last_name = result['lname']
-#            return jsonify({'message': 'Login successful', 'role': specific_user_role, 'fname': specific_first_name, 'lname': specific_last_name}), 200 #return message, role, first and last name
-#        else:
-#            return jsonify({'message': 'Incorrect password'}), 401
-#    else:
-#        return jsonify({'message': 'User not found'}), 404
-
 #example API endpoint that checks the user's role
 @app.route('/rolecheck', methods=['GET'])
 def rolecheck():
