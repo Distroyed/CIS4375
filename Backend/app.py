@@ -320,6 +320,195 @@ def update():
     if not user_found:
         return jsonify({'message': 'User not found'}), 404
 
+# Update vendor information by Vendor_id
+@app.route('/vendor/edit', methods=['POST'])
+def edit_vendor():
+    # Check if the current user has the 'Admin' role
+    if 'username' in session and 'role' in session and session['role'] == 'admin':
+        try:
+            data = request.get_json()
+            vendor_id = data.get('Vendor_id')
+
+            if not vendor_id:
+                return jsonify({'message': 'Vendor_id is required'}), 400
+
+            # SQL query to update the vendor in the 'VENDOR' table
+            update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_abbr = %s, ZIP = %s, " \
+                        "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
+                        "notes = %s WHERE Vendor_id = %s"
+
+            # Execute the SQL query with the provided data
+            cursor.execute(update_query, (
+                data.get('vendor_name'),
+                data.get('address'),
+                data.get('city'),
+                data.get('state_abbr'),
+                data.get('ZIP'),
+                data.get('contact_name'),
+                data.get('contact_phone'),
+                data.get('order_phone'),
+                data.get('email'),
+                data.get('ordering_channel'),
+                data.get('notes'),
+                vendor_id
+            ))
+
+            # Commit the transaction to save the changes in the database
+            link_up.commit()
+
+            return jsonify({'message': 'Vendor information updated successfully'}), 200
+
+        except Exception as e:
+            # If there's an exception during the database operation, return an error message
+            return jsonify({'message': f'Failed to update vendor: {str(e)}'}), 500
+    else:
+        return jsonify({'message': 'Permission denied'}), 403  # Forbidden
+
+# Update supply table information by supply_id
+@app.route('/supply/edit', methods=['PUT'])
+def edit_supply():
+    data = request.get_json()
+    supply_id = data.get('supply_id')  # Receive the supply_id from the frontend
+
+    if not supply_id:
+        return jsonify({'message': 'supply_id is required'}), 400
+
+    # If the current user is not authenticated, return a 401 Unauthorized response
+    if 'username' in session and 'role' in session and session['role'] != 'admin':
+        return jsonify({'message': 'User not authenticated'}), 401
+
+    # Check if the current user has the 'Admin' role
+    if 'username' in session and 'role' in session and session['role'] == 'admin':
+        try:
+            # Get the current price from the 'SUPPLY' table
+            cursor.execute("SELECT price FROM SUPPLY WHERE supply_id = %s", (supply_id,))
+            previous_price_row = cursor.fetchone()
+            if previous_price_row:
+                previous_price = previous_price_row['price']
+            else:
+                return jsonify({'message': 'Supply not found'}), 404
+
+            # SQL query to update the supply in the 'SUPPLY' table
+            update_query = "UPDATE SUPPLY SET item_name = %s, item_type_id = %s, " \
+                           "vendor_id = %s, quantity = %s, reorder_point = %s, " \
+                           "modified_by = %s, price = %s, notes = %s " \
+                           "WHERE supply_id = %s"
+
+            # Execute the SQL query with the provided data
+            cursor.execute(update_query, (
+                data.get('item_name'),
+                data.get('item_type_id'),
+                data.get('vendor_id'),
+                data.get('quantity'),
+                data.get('reorder_point'),
+                data.get('modified_by'),
+                data.get('price'),
+                data.get('notes'),
+                supply_id
+            ))
+
+            # Commit the transaction to save the changes in the 'SUPPLY' table
+            link_up.commit()
+
+            # Now, add data to the 'PRICE' table
+            # Define a new SQL query to insert data into the 'PRICE' table
+            price_insert_query = "INSERT INTO PRICE (supply_id, previous_price, new_price, change_amount, modified_date) VALUES (%s, %s, %s, %s, NOW())"
+
+            # Calculate change_amount (new_price - previous_price)
+            new_price = data.get('price')
+            change_amount = new_price - previous_price
+
+            # Execute the SQL query with the calculated values
+            cursor.execute(price_insert_query, (
+                supply_id,
+                previous_price,
+                new_price,
+                change_amount
+            ))
+
+            # Commit the transaction for the 'PRICE' table
+            link_up.commit()
+
+            return jsonify({'message': 'Supply information updated successfully'}), 200
+
+        except Exception as e:
+            # If there's an exception during the database operation, return an error message
+            return jsonify({'message': f'Failed to update supply: {str(e)}'}), 500
+    else:
+        return jsonify({'message': 'Permission denied'}), 403  # Forbidden
+
+
+    # Update SUPPLY table and add a new row to TRANSACTION table
+@app.route('/order', methods=['PUT'])
+def order():
+    data = request.get_json()
+    orders = data.get('orders')  # Assuming 'orders' is an array of objects
+
+    if not orders:
+        return jsonify({'message': 'No orders provided'}), 400
+
+    # If the current user is not authenticated, return a 401 Unauthorized response
+    if 'username' in session and 'role' in session and session['role'] != 'admin':
+        return jsonify({'message': 'User not authenticated'}), 401
+
+    # Check if the current user has the 'Admin' role
+    if 'username' in session and 'role' in session and session['role'] == 'admin':
+        try:
+            for order in orders:
+                supply_id = order.get('supply_id')
+                vendor_id = order.get('vendor_id')
+                modified_by = order.get('modified_by')
+                qty_ordered = order.get('qty_ordered')
+
+                # Get the current quantity from the 'SUPPLY' table
+                cursor.execute("SELECT quantity FROM SUPPLY WHERE supply_id = %s", (supply_id,))
+                current_quantity_row = cursor.fetchone()
+                if current_quantity_row:
+                    current_quantity = current_quantity_row['quantity']
+                else:
+                    return jsonify({'message': 'Supply not found'}), 404
+
+                # Calculate previous_qty, new_qty, and change_qty
+                previous_qty = current_quantity
+                new_qty = current_quantity - qty_ordered
+                change_qty = new_qty - previous_qty
+
+                # SQL query to update the SUPPLY table
+                update_query = "UPDATE SUPPLY SET vendor_id = %s, quantity = %s, notes = %s, modified_by = %s " \
+                               "WHERE supply_id = %s"
+
+                # Execute the SQL query with the provided data
+                cursor.execute(update_query, (
+                    vendor_id,
+                    new_qty,  # Update quantity to new_qty
+                    order.get('notes'),  # Assuming 'notes' is part of the data
+                    modified_by,
+                    supply_id
+                ))
+
+                # SQL query to add a new row to the TRANSACTION table
+                transaction_query = "INSERT INTO TRANSACTION (supply_id, modified_by, previous_qty, new_qty, change_qty) " \
+                                    "VALUES (%s, %s, %s, %s, %s)"
+
+                # Execute the SQL query with the calculated values
+                cursor.execute(transaction_query, (
+                    supply_id,
+                    modified_by,
+                    previous_qty,
+                    new_qty,
+                    change_qty
+                ))
+
+            # Commit the transaction to save the changes in the database
+            link_up.commit()
+
+            return jsonify({'message': 'Orders processed successfully'}), 200
+
+        except Exception as e:
+            # If there's an exception during the database operation, return an error message
+            return jsonify({'message': f'Failed to process orders: {str(e)}'}), 500
+    else:
+        return jsonify({'message': 'Permission denied'}), 40
 
 ################################################################################################################################## POST APIS ##################################################################################################################################################
 # Login API
