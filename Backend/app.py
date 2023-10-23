@@ -256,7 +256,7 @@ def get_supplies():
         cursor.execute("SELECT s.supply_id, s.item_name, s.item_type_id, it.item_type_desc, "
                        "s.vendor_id, v.vendor_name, s.quantity, s.reorder_point, s.price, "
                        "s.notes, s.date_added, s.added_by, s.date_modified, s.modified_by "
-                       "FROM supplies s "
+                       "FROM SUPPLY s "
                        "INNER JOIN item_types it ON s.item_type_id = it.item_type_id "
                        "INNER JOIN vendors v ON s.vendor_id = v.vendor_id")
         supplies = cursor.fetchall()
