@@ -321,7 +321,7 @@ def update():
         return jsonify({'message': 'User not found'}), 404
 
 # Update vendor information by Vendor_id
-@app.route('/vendor/edit', methods=['POST'])
+@app.route('/vendor/edit', methods=['PUT'])
 def edit_vendor():
     # Check if the current user has the 'Admin' role
     if 'username' in session and 'role' in session and session['role'] == 'admin':
@@ -333,8 +333,8 @@ def edit_vendor():
                 return jsonify({'message': 'Vendor_id is required'}), 400
 
             # SQL query to update the vendor in the 'VENDOR' table
-            update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_abbr = %s, ZIP = %s, " \
-                        "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
+            update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_id = %s, ZIP = %s, " \
+                        "contact_name = %s, contact_phone = %s, email = %s, ordering_channel = %s, " \
                         "notes = %s WHERE Vendor_id = %s"
 
             # Execute the SQL query with the provided data
@@ -342,11 +342,10 @@ def edit_vendor():
                 data.get('vendor_name'),
                 data.get('address'),
                 data.get('city'),
-                data.get('state_abbr'),
+                data.get('state_id'),
                 data.get('ZIP'),
                 data.get('contact_name'),
                 data.get('contact_phone'),
-                data.get('order_phone'),
                 data.get('email'),
                 data.get('ordering_channel'),
                 data.get('notes'),
@@ -412,18 +411,15 @@ def edit_supply():
 
             # Now, add data to the 'PRICE' table
             # Define a new SQL query to insert data into the 'PRICE' table
-            price_insert_query = "INSERT INTO PRICE (supply_id, previous_price, new_price, change_amount, modified_date) VALUES (%s, %s, %s, %s, NOW())"
+            price_insert_query = "INSERT INTO PRICE (supply_id, price, modified_date) VALUES (%s, %s, NOW())"
 
             # Calculate change_amount (new_price - previous_price)
-            new_price = data.get('price')
-            change_amount = new_price - previous_price
+            price = data.get('price')
 
             # Execute the SQL query with the calculated values
             cursor.execute(price_insert_query, (
                 supply_id,
-                previous_price,
-                new_price,
-                change_amount
+                price
             ))
 
             # Commit the transaction for the 'PRICE' table
@@ -470,8 +466,8 @@ def order():
 
                 # Calculate previous_qty, new_qty, and change_qty
                 previous_qty = current_quantity
-                new_qty = current_quantity - qty_ordered
-                change_qty = new_qty - previous_qty
+                quantity = current_quantity - qty_ordered
+                change_qty = quantity - previous_qty
 
                 # SQL query to update the SUPPLY table
                 update_query = "UPDATE SUPPLY SET vendor_id = %s, quantity = %s, notes = %s, modified_by = %s " \
@@ -480,23 +476,22 @@ def order():
                 # Execute the SQL query with the provided data
                 cursor.execute(update_query, (
                     vendor_id,
-                    new_qty,  # Update quantity to new_qty
+                    quantity,  # Calculate quantity
                     order.get('notes'),  # Assuming 'notes' is part of the data
                     modified_by,
                     supply_id
                 ))
 
                 # SQL query to add a new row to the TRANSACTION table
-                transaction_query = "INSERT INTO TRANSACTION (supply_id, modified_by, previous_qty, new_qty, change_qty) " \
-                                    "VALUES (%s, %s, %s, %s, %s)"
+                transaction_query = "INSERT INTO TRANSACTION (supply_id, modified_by, change_qty, qty_ordered) " \
+                                    "VALUES (%s, %s, %s, %s)"
 
                 # Execute the SQL query with the calculated values
                 cursor.execute(transaction_query, (
                     supply_id,
                     modified_by,
-                    previous_qty,
-                    new_qty,
-                    change_qty
+                    change_qty,
+                    qty_ordered
                 ))
 
             # Commit the transaction to save the changes in the database
@@ -508,7 +503,7 @@ def order():
             # If there's an exception during the database operation, return an error message
             return jsonify({'message': f'Failed to process orders: {str(e)}'}), 500
     else:
-        return jsonify({'message': 'Permission denied'}), 40
+        return jsonify({'message': 'Permission denied'}), 400
 
 ################################################################################################################################## POST APIS ##################################################################################################################################################
 # Login API
@@ -541,39 +536,8 @@ def login():
             return jsonify({'message': 'Incorrect password'}), 401
     else:
         return jsonify({'message': 'User not found'}), 404
-
-# Login creation api
-@app.route('/CreateLogin', methods=['POST'])
-def CreateLogin():
-    # Check if the user is logged in and has an "Admin" role in the session
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-
-        if not username or not password:
-            return jsonify({'message': 'Username and password are required'}), 400
-
-        #check if the username already exists in the database
-        cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM ACCOUNT WHERE username = %s", (username,))
-        existing_user = cursor.fetchone()
-
-        if existing_user:
-            return jsonify({'message': 'Username already exists'}), 409
-
-        # If the username is not taken, hash the password and insert the new user into the database
-        password = hashlib.sha256(password.encode()).hexdigest()
-        insert_query = "INSERT INTO ACCOUNT (username, password) VALUES (%s, %s)"
-        cursor.execute(insert_query, (username, password))
-        link_up.commit()
-
-        return jsonify({'message': 'User registration successful'}), 200
     
-    else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin to create a new login.'}), 401
     # Add Account 
-
 @app.route('/account/add', methods=['POST'])
 def add_account():
     # Contains JSON data
@@ -783,9 +747,6 @@ def delete_supply(supply_id):
             return jsonify({'message': f'Error on the backend: {str(e)}'})
     else:
         return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a vendor.'})
-
-
-
 
 if __name__ == '__main__':
     app.run(port=5050)

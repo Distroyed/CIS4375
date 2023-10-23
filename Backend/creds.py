@@ -1,5 +1,5 @@
 class Creds:
-    conString = 'database-1.cluster-c1nxsg8z29zr.us-east-2.rds.amazonaws.com'
+    conString = 'cis3368spring.cutpbuldw4bb.us-east-1.rds.amazonaws.com'
     userName = 'admin'
-    password = 'SevenFridaySushi'
-    dbName = 'sevenfridaysushi-inv-db'
+    password = 'SillyAdminAbuser7777777!'
+    dbName = 'cis3368DB'
