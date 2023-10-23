@@ -4,7 +4,7 @@
         <v-col cols="2">
             <v-card elevation="1" class="pb-3">
                 <v-card-title class="text-overline">Order By Phone</v-card-title>
-                <span class="text-orange-darken-1 text-h4 font-weight-light">{{ phoneCount }}</span>
+                <span class="text-orange-darken-1 text-h4 font-weight-light">{{ onlineCount }}</span>
             </v-card>
         </v-col>
         <v-col cols="2">
@@ -62,6 +62,7 @@
                             color="indigo"
                             prepend-icon="mdi-microsoft-excel"
                             size="small"
+                            @click="exportCSV()"
                             >
                                 Export Csv
                             </v-btn>
@@ -173,7 +174,7 @@
                                     label="Ordering Chanel"
                                     color="primary"
                                     clearable
-                                    :items="['Text','Email','Phone', 'Other']"
+                                    :items="['Via Text','Via Email','Via Phone','Online','Other']"
                                     :rules="[ v => !!v || 'Order Channel is required']"
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
@@ -232,10 +233,10 @@
                     <v-row class="mx-10">
                         <ul>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Vendor Name:</span> {{ delVendor.vendor_name }} </p></li>
-                                <li><p style="font-size:15px"><span style="font-weight: bold;">Address:</span> {{ delVendor.address}},{{ delVendor.city }},{{ delVendor.state_name }},{{ delVendor.ZIP }} </p></li>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Address:</span> {{ delVendor.address}},{{ delVendor.city }},{{ delVendor.state_abbr }},{{ delVendor.zip }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Contact Name:</span> {{ delVendor.contact_name }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Email:</span> {{ delVendor.email }} </p></li>
-                                <li><p style="font-size:15px"><span style="font-weight: bold;">Phone:</span> {{ delVendor.phone }} </p></li>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Phone:</span> {{ delVendor.contact_phone }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Ordering Chanel:</span> {{ delVendor.ordering_channel }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Notes:</span> {{ delVendor.notes }} </p></li>
                         </ul>    
@@ -280,29 +281,47 @@ const headers = ref([
     { title: 'Vendor Name', align: 'left', key: 'vendor_name'  },
     { title: 'Address', align: 'left', key: 'address'  },
     { title: 'City', align: 'left', key: 'city'  },
-    { title: 'State', align: 'left', key: 'state_name'},
-    { title: 'Zip Code', align: 'left', key: 'ZIP' },
+    { title: 'State', align: 'left', key: 'state_abbr'},
+    { title: 'Zip Code', align: 'left', key: 'zip' },
     { title: 'Contact Name', align: 'left', key: 'contact_name' },    
-    { title: 'Phone Number', align: 'left', key: 'phone' }, 
+    { title: 'Phone Number', align: 'left', key: 'contact_phone' }, 
     { title: 'Email', align: 'left', key: 'email' }, 
     { title: 'Order Channel', align: 'left', key: 'ordering_channel' }, 
     { title: 'Note', align: 'left', key: 'notes' }, 
 ]);
-const displayItems = ref([
-    {vendor_id:1, vendor_name:'Hui Lin Inc', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
-]);
+const displayItems = ref([]);
+//Fetch Data to Vendor
+onBeforeMount(async () => {
+    try{
+        const res = await StoreApi.getVendor();
+        //console.log(res);
+        if(res.status === 200){
+            displayItems.value = [...res.data];
+            console.log(displayItems.value)
+        }
+    }
+    catch(error){
+        if(error.message){
+            piniaStore.setSnackBar(error.message + ".Please contact IT for support");
+        }
+        else piniaStore.setSnackBar("Error in getting Vendor Data. Please contact IT for support");
+    }
+});
 
-const phoneCount = computed(() => {
-    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "PHONE").length;
+const onlineCount = computed(() => {
+  return displayItems.value.filter(item => item.ordering_channel?.trim().toUpperCase() === "ONLINE").length;
 });
+
 const textCount = computed(() => {
-    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "TEXT").length;
+  return displayItems.value.filter(item => item.ordering_channel?.trim().toUpperCase() === "VIA TEXT").length;
 });
+
 const emailCount = computed(() => {
-    return displayItems.value.filter(item => item.ordering_channel.trim().toUpperCase() === "EMAIL" || item.ordering_channel.trim().toUpperCase() === "E-MAIL").length;
+  return displayItems.value.filter(item => (item.ordering_channel?.trim().toUpperCase() === "VIA EMAIL" || item.ordering_channel?.trim().toUpperCase() === "VIA E-MAIL")).length;
 });
+
 const otherCount = computed(() => {
-    return displayItems.value.length - phoneCount.value - textCount.value - emailCount.value;
+    return displayItems.value.length - onlineCount.value - textCount.value - emailCount.value;
 });
 //Setup rules:
 const phoneRule = [
@@ -350,15 +369,24 @@ async function submitAddOrEdit()
         addOrEditLoading.value = true;
         if(isAdd.value === 1){
             //Send Added Vendor Info To Backend
-            //
-            displayItems.value.push(vendorItem.value);
+            vendorItem.value.added_by = piniaStore.currentUserName;
+            console.log(vendorItem.value);
+            const res =  await StoreApi.addVendor(vendorItem.value);
+            if(res.status === 200)
+            {
+                piniaStore.setSnackBar("Account added successfully");
+                displayItems.value.push(vendorItem.value);
+            }
         }
         else{
             //Send Editted Vendor Info to Backend
-            //
-            const index = displayItems.value.findIndex(obj => obj.vendor_id === vendorItem.value.vendor_id);
-            if (index !== -1) {
-                displayItems.value[index] = vendorItem.value;
+            vendorItem.value.modified_by = piniaStore.currentUserName;
+            const res =  await StoreApi.editAccount(vendorItem.value);
+            if(res.status === 200) {
+                const index = displayItems.value.findIndex(obj => obj.vendor_id === vendorItem.value.vendor_id);
+                if (index !== -1) {
+                    displayItems.value[index] = vendorItem.value;
+                }
             }
         }
         addOrEditLoading.value = false;
@@ -390,6 +418,7 @@ async function deleteVendor(item){
     if(item){
         delDialog.value = true;
         delVendor.value = Object.assign({}, item.raw);
+        console.log(delVendor.value);
     }    
     else{
         piniaStore.setSnackBar("An error occurs, please contact IT for support!");
@@ -399,9 +428,12 @@ async function submitDel(){
     try{
         delLoading.value = true;
         //Send data to backend
-        //
+        const res = await StoreApi.delVendor(delVendor.value.vendor_id);
+        if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.vendor_id === delVendor.value.vendorItem);
-            displayItems.value.splice(index, 1)
+            displayItems.value.splice(index, 1);
+            piniaStore.setSnackBar("Vendor deleted successfully");
+        }            
         delLoading.value = false;
         delDialog.value = false;
     }
@@ -417,25 +449,28 @@ function exportCSV(){
     exportItem.value = displayItems.value;
     const csvString = [
         [
-            'Username',
-            'First Name',
-            'Last Name',
+            'Vendor Name',
+            'Address',
+            'City',
+            'State',
+            'Zip Code',
+            'Contact Name',
+            'Phone Number',
             'Email',
-            'Phone',
-            'Role',
-            'Added By',
-            'Date Added'
+            'Order Channel',
+            'Note'
         ],
         ...exportItem.value.map( item => [
-            item.username,
-            item.fname,
-            item.lname,
+            item.vendor_name,
+            item.address,
+            item.city,
+            item.state_abbr,
+            item.zip,
+            item.contact_name,
+            item.contact_phone,
             item.email,
-            item.phone,
-            item.role,
-            item.added_by,
-            item.Enabled,
-            item.date_added
+            item.ordering_channel,
+            item.notes
         ])
     ]
     .map(e => e.join(","))

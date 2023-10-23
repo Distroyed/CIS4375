@@ -103,12 +103,20 @@
                     <v-card-text>
                         <v-form ref="addOrEditForm">
                             <v-row class="mx-6 justify-center align-center">
-                                <v-col cols="4">
+                                <!-- <v-col cols="4">
                                     <v-text-field
                                     v-model="accountItem.username"
                                     label="Account Name"
                                     color="primary"
                                     :rules="[ v => !!v || 'Account Name is required']"
+                                    variant="underlined"></v-text-field>
+                                </v-col> -->
+                                <v-col cols="4">
+                                    <v-text-field
+                                    v-model="accountItem.username"
+                                    label="Email"
+                                    color="primary"
+                                    :rules="emailRule"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="4">
@@ -128,15 +136,7 @@
                                     variant="underlined"></v-text-field>
                                 </v-col>
                             </v-row>                            
-                            <v-row class="mx-6">
-                                <v-col cols="4">
-                                    <v-text-field
-                                    v-model="accountItem.email"
-                                    label="Email"
-                                    color="primary"
-                                    :rules="emailRule"
-                                    variant="underlined"></v-text-field>
-                                </v-col>
+                            <v-row class="mx-6">                                
                                 <v-col cols="4">
                                     <v-text-field
                                     v-model="accountItem.phone"
@@ -156,6 +156,33 @@
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
                             </v-row>    
+                            <div v-if="isAdd === 1">
+                                <v-row class="mx-6">
+                                    <v-col cols="6">
+                                        <v-text-field
+                                        v-model="accountItem.password"
+                                        label="Password"
+                                        type="password"
+                                        color="primary"
+                                        :rules="[ v => !!v || 'Password is required']"
+                                        variant="underlined"></v-text-field>
+                                    </v-col>
+                                    <v-col cols="6">
+                                        <v-text-field
+                                        v-model="accountItem.new_password"
+                                        label="Confirm Password"
+                                        type="password"
+                                        color="primary"
+                                        :rules="[ v => !!v || 'Password is required']"
+                                        variant="underlined"></v-text-field>
+                                    </v-col>                                    
+                                </v-row>
+                                <v-row class="mx-7 mb-4">
+                                    <v-alert density="compact" type="error" v-if="passwordsDoNotMatch">
+                                        Passwords do not match
+                                    </v-alert>
+                                </v-row>
+                            </div>  
                             <v-row class="mx-6" v-if="isAdd===0">
                                 <v-checkbox
                                     v-model="resetPw"
@@ -167,7 +194,7 @@
                                 <v-row class="mx-6">
                                     <v-col cols="6">
                                         <v-text-field
-                                        v-model="password"
+                                        v-model="accountItem.password"
                                         label="Password"
                                         type="password"
                                         color="primary"
@@ -198,6 +225,7 @@
                                     color="green"
                                     width="150"
                                     @click.prevent="submitAddOrEdit()"
+                                    :disabled="passwordsDoNotMatch"
                                     :loading="addOrEditLoading"
                                     prepend-icon="mdi-content-save-outline">
                                     Save
@@ -262,7 +290,7 @@
 </template>
 <script setup>
 import { useAppStore } from '@/store/app'
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeMount } from 'vue';
 import StoreApi from '@/services/StoreApi';
 const search = ref(null);
 const loading = ref(false)
@@ -273,7 +301,7 @@ const headers = ref([
     { title: 'Username', align: 'left', key: 'username'  },
     { title: 'First Name', align: 'left', key: 'fname'  },
     { title: 'Last Name', align: 'left', key: 'lname'  },
-    { title: 'Email', align: 'left', key: 'email'  },
+    //{ title: 'Email', align: 'left', key: 'email'  },
     { title: 'Phone', align: 'left', key: 'phone'},
     { title: 'Role', align: 'left', key: 'role' },
     { title: 'Added By', align: 'left', key: 'added_by' },    
@@ -281,9 +309,24 @@ const headers = ref([
     { title: 'Modified By', align: 'left', key: 'modified_by' },    
     { title: 'Modify Date', align: 'left', key: 'date_modified' }
 ]);
-const displayItems = ref([
-    {account_id:1, username:'admin', fname:'Vicky', lname:'Nguyen', email:'abc@g.co', phone:'123-456-7890', role:'admin', added_by:'admin', date_added:'10/20/2023'},
-]);
+const displayItems = ref([]);
+//Fetch Data to Account
+onBeforeMount(async () => {
+    try{
+        const res = await StoreApi.getAccount();
+        //console.log(res);
+        if(res.status === 200){
+            displayItems.value = [...res.data];
+            console.log(displayItems.value)
+        }
+    }
+    catch(error){
+        if(error.message){
+            piniaStore.setSnackBar(error.message + ".Please contact IT for support");
+        }
+        else piniaStore.setSnackBar("Error in getting Account Data. Please contact IT for support");
+    }
+});
 
 const adminCount = computed(() => {
     return displayItems.value.filter(item => item.role.trim().toUpperCase() === "ADMIN").length;
@@ -330,8 +373,7 @@ async function addOrEditAccount(item){
 
 //Reset Password
 const resetPw = ref(false);
-const password = ref();
-const passwordsDoNotMatch = computed(() => password.value !== accountItem.value.new_password)
+const passwordsDoNotMatch = computed(() => accountItem.value.password !== accountItem.value.new_password)
 
 //Submit Add or Edit Account to Backend
 async function submitAddOrEdit()
@@ -339,18 +381,29 @@ async function submitAddOrEdit()
     const {valid} = await addOrEditForm.value.validate();
     if(valid && !passwordsDoNotMatch.value){
         try{
+            await StoreApi.checkRole();
         addOrEditLoading.value = true;
         if(isAdd.value === 1){
+            accountItem.value.added_by = piniaStore.currentUserName;
+            console.log(accountItem.value)            
             //Send Added Account Info To Backend
-            //
-            displayItems.value.push(accountItem.value);
+            const res =  await StoreApi.addAccount(accountItem.value);
+            if(res.status === 200)
+            {
+                piniaStore.setSnackBar("Account added successfully");
+                displayItems.value.push(accountItem.value);
+            }            
         }
         else{
             //Send Editted Account Info to Backend
-            //
-            const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
-            if (index !== -1) {
-                displayItems.value[index] = accountItem.value;
+            accountItem.value.modified_by = piniaStore.currentUserName;
+            console.log(accountItem.value)
+            const res =  await StoreApi.editAccount(accountItem.value);
+            if(res.status === 200) {
+                const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
+                if (index !== -1) {
+                    displayItems.value[index] = accountItem.value;
+                }
             }
         }
         addOrEditLoading.value = false;
@@ -363,8 +416,7 @@ async function submitAddOrEdit()
     }
     else{
         piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
-    }
-     
+    }     
 }
 
 //Cancel Adding or Editting Account
@@ -393,9 +445,12 @@ async function submitDel(){
     try{
         delLoading.value = true;
         //Send data to backend
-        //
+        const res = await StoreApi.delAccount(delAccount.value.account_id);
+        if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.account_id === delAccount.value.account_id);
-            displayItems.value.splice(index, 1)
+            displayItems.value.splice(index, 1);
+            piniaStore.setSnackBar("Account deleted successfully");
+        }
         delLoading.value = false;
         delDialog.value = false;
     }
@@ -413,23 +468,24 @@ function exportCSV(){
         [
             'Username',
             'First Name',
-            'Last Name',
-            'Email',
+            'Last Name',            
             'Phone',
             'Role',
             'Added By',
-            'Date Added'
+            'Date Added',
+            'Modified By',
+            'Modified Date'
         ],
         ...exportItem.value.map( item => [
             item.username,
             item.fname,
-            item.lname,
-            item.email,
+            item.lname,           
             item.phone,
             item.role,
             item.added_by,
-            item.Enabled,
-            item.date_added
+            item.date_added,
+            item.modified_by,
+            item.date_modified
         ])
     ]
     .map(e => e.join(","))

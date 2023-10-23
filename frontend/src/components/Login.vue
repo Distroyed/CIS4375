@@ -116,8 +116,8 @@ async function login(){
                 if(response.data.role){
                     piniaStore.currentRole = response.data.role;
                 }
-                piniaStore.currentUserName = username.value;                
-                console.log(piniaStore.loginSuccess);
+                piniaStore.currentUserName = username.value;    
+                piniaStore.currentUser = response.data.fname + response.data.lname;  
                 router.push({name: 'Home'})
             }
         }

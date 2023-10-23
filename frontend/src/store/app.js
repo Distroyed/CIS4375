@@ -11,6 +11,8 @@ export const useAppStore = defineStore('app', {
     currentUser: '',    
     currentUserName: '',
     currentRole: '',
+    currentFName: '',
+    currentLName: '',
     loginSuccess: false,
     forgotPW: false
   }),
