@@ -6,14 +6,14 @@ POST Api: ‘CreateLogin’
 POST Api: ‘DeleteUser’ 
 POST Api: ‘reset-password/update’ 
 HashPassword.py file
+PUT Api: ‘vendor/edit’ 
+PUT Api: ‘supply/edit’ 
+PUT Api: ‘order’ 
 
 Working on:
 POST Api:’forgot-password’ 
 POST Api:’forgot-password/answer’ 
-GET Api: ‘reset-password/get/{$link_id}’ 
-PUT Api: ‘vendor/edit’ 
-PUT Api: ‘supply/edit’ 
-PUT Api: ‘order’ 
+GET Api: ‘reset-password/get/{$link_id}’
 
 James Freeborn-
 Done:
