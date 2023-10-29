@@ -164,7 +164,7 @@ def getAccountAll () :
 def getStates():
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM states")
+        cursor.execute("SELECT * FROM STATE")
         states = cursor.fetchall()
 
 
@@ -188,7 +188,7 @@ def getStates():
 def getAllItemType():
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM item_types")
+        cursor.execute("SELECT * FROM ITEM_TYPE")
         item_types = cursor.fetchall()
 
         item_type_list = []
@@ -210,7 +210,7 @@ def getAllItemType():
 def get_vendors():
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM vendors")
+        cursor.execute("SELECT * FROM VENDOR")
         vendors = cursor.fetchall()
 
         vendor_list = []
@@ -220,11 +220,10 @@ def get_vendors():
                 "vendor_name": vendor["vendor_name"],
                 "address": vendor["address"],
                 "city": vendor["city"],
-                "state_abbr": vendor["state_abbr"],
-                "zip": vendor["zip"],
+                "state_id": vendor["state_id"],
+                "ZIP": vendor["ZIP"],
                 "contact_name": vendor["contact_name"],
-                "contact_phone": vendor["contact_phone"],
-                "order_phone": vendor["order_phone"],
+                "phone": vendor["phone"],
                 "email": vendor["email"],
                 "ordering_channel": vendor["ordering_channel"],
                 "notes": vendor["notes"],
@@ -239,6 +238,8 @@ def get_vendors():
     
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+# API to get Supply Info
 
 @app.route('/supply/get-all', methods=['GET'])
 def get_supplies():
@@ -248,8 +249,8 @@ def get_supplies():
                        "s.vendor_id, v.vendor_name, s.quantity, s.reorder_point, s.price, "
                        "s.notes, s.date_added, s.added_by, s.date_modified, s.modified_by "
                        "FROM SUPPLY s "
-                       "INNER JOIN item_types it ON s.item_type_id = it.item_type_id "
-                       "INNER JOIN vendors v ON s.vendor_id = v.vendor_id")
+                       "INNER JOIN ITEM_TYPE it ON s.item_type_id = it.item_type_id "
+                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id")
         supplies = cursor.fetchall()
 
         supply_list = []
@@ -263,7 +264,7 @@ def get_supplies():
                 "vendor_name": supply["vendor_name"],
                 "quantity": supply["quantity"],
                 "reorder_point": supply["reorder_point"],
-                "price": supply["price"],
+                "price": str(supply["price"]),
                 "notes": supply["notes"],
                 "date_added": supply["date_added"],
                 "added_by": supply["added_by"],
@@ -276,6 +277,7 @@ def get_supplies():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 ################################################################################################################################## PUT APIS ##################################################################################################################################################
 # Update password and set is_updated and is_expired in LINK
