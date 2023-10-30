@@ -17,6 +17,9 @@ export default {
     checkRole(){
         return Api().get('rolecheck');
     },
+    getState(){
+        return Api().get('states');
+    },
     //SUPPLY
     //Get Supply
     getSupply(){
@@ -28,15 +31,15 @@ export default {
     },
     //Add Supply
     addSupply(item){
-        return Api().post('', item);
+        return Api().post('supply/add', item);
     },
     //Edit Supply
     editSupply(item){
-        return Api().put('', item);
+        return Api().put('supply/edit', item);
     },
     //Delete Supply
-    delSupply(item){
-        return Api().delete('');
+    delSupply(supplyID){
+        return Api().delete(`supply/delete/${supplyID}`);
     },
     //VENDOR
     //Get Vendors
@@ -49,11 +52,11 @@ export default {
     },
     //Edit Vendor
     editVendor(item){
-        return Api().put('', item);
+        return Api().put('vendor/edit', item);
     },
     //Delete Vendor
-    delVendor(item){
-        return Api().delete('');
+    delVendor(vendorID){
+        return Api().delete(`vendor/delete/${vendorID}`);
     },
     //ACCOUNT
     //Get Account Data
@@ -66,10 +69,10 @@ export default {
     },
     //Edit Account
     editAccount(item){
-        return Api().put('', item);
+        return Api().put('account/edit', item);
     },
     //Delete Vendor
-    delAccount(item){
-        return Api().delete('');
+    delAccount(acctID){
+        return Api().delete(`account/delete/${acctID}`);
     }
 }

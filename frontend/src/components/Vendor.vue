@@ -153,11 +153,17 @@
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="3">
-                                    <v-text-field
-                                    v-model="vendorItem.state_name"
+                                    <v-autocomplete
+                                    v-model="vendorItem.state_id"
                                     label="State"
                                     color="primary"
-                                    variant="underlined"></v-text-field>
+                                    :rules="[ v => !!v || 'Password is required']"
+                                    variant="underlined"
+                                    density="compact"
+                                    :items="stateList"
+                                    item-title="state_abbr"
+                                    item-value="state_id"
+                                    ></v-autocomplete>
                                 </v-col>
                                 <v-col cols="3">
                                     <v-text-field
@@ -178,16 +184,15 @@
                                     :rules="[ v => !!v || 'Order Channel is required']"
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
-                                <v-col cols="4" v-if="vendorItem.ordering_channel === 'Email'">
-                                    <v-text-field
-                                    
+                                <v-col cols="4">
+                                    <v-text-field                                    
                                     v-model="vendorItem.email"
                                     label="Email"
                                     color="primary"
                                     :rules="emailRule"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4" v-if="vendorItem.ordering_channel === 'Phone' || vendorItem.ordering_channel === 'Text'">
+                                <v-col cols="4">
                                     <v-text-field                                    
                                     v-model="vendorItem.phone"
                                     label="Phone"
@@ -290,14 +295,19 @@ const headers = ref([
     { title: 'Note', align: 'left', key: 'notes' }, 
 ]);
 const displayItems = ref([]);
+const stateList = ref([]);
 //Fetch Data to Vendor
 onBeforeMount(async () => {
     try{
         const res = await StoreApi.getVendor();
-        //console.log(res);
         if(res.status === 200){
             displayItems.value = [...res.data];
-            console.log(displayItems.value)
+            console.log(displayItems.value);
+        }
+        const resState = await StoreApi.getState();
+        if(resState.status === 200){
+            stateList.value = [...resState.data];
+            console.log(stateList.value);
         }
     }
     catch(error){

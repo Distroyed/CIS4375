@@ -152,7 +152,7 @@
                                     color="primary"
                                     :rules="[ v => !!v || 'Role is required']"
                                     clearable
-                                    :items="['Admin', 'Edit', 'View']"
+                                    :items="['admin', 'edit', 'view']"
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
                             </v-row>    
@@ -381,7 +381,7 @@ async function submitAddOrEdit()
     const {valid} = await addOrEditForm.value.validate();
     if(valid && !passwordsDoNotMatch.value){
         try{
-            await StoreApi.checkRole();
+            //await StoreApi.checkRole();
         addOrEditLoading.value = true;
         if(isAdd.value === 1){
             accountItem.value.added_by = piniaStore.currentUserName;
@@ -449,7 +449,7 @@ async function submitDel(){
         if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.account_id === delAccount.value.account_id);
             displayItems.value.splice(index, 1);
-            piniaStore.setSnackBar("Account deleted successfully");
+            piniaStore.setSnackBar("Account deleted successfully", true);
         }
         delLoading.value = false;
         delDialog.value = false;
