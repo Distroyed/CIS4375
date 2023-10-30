@@ -140,7 +140,7 @@ def getAccountAll () :
         user_list = []
         for user in users:
             user_info = {
-                "account_id": user["id"],
+                "account_id": user["account_id"],
                 "username": user["username"],
                 "fname": user.get("fname", ""),  
                 "lname": user.get("lname", ""),  
@@ -210,7 +210,7 @@ def getAllItemType():
 def get_vendors():
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM VENDOR")
+        cursor.execute("SELECT * FROM VENDOR V JOIN STATE S ON S.state_id = V.state_id ")
         vendors = cursor.fetchall()
 
         vendor_list = []
@@ -220,8 +220,8 @@ def get_vendors():
                 "vendor_name": vendor["vendor_name"],
                 "address": vendor["address"],
                 "city": vendor["city"],
-                "state_id": vendor["state_id"],
-                "ZIP": vendor["ZIP"],
+                "state_abbr": vendor["state_abbr"],
+                "zip": vendor["ZIP"],
                 "contact_name": vendor["contact_name"],
                 "phone": vendor["phone"],
                 "email": vendor["email"],
@@ -246,11 +246,17 @@ def get_supplies():
     try:
         cursor = link_up.cursor(dictionary=True)
         cursor.execute("SELECT s.supply_id, s.item_name, s.item_type_id, it.item_type_desc, "
-                       "s.vendor_id, v.vendor_name, s.quantity, s.reorder_point, s.price, "
+                       "s.vendor_id, v.vendor_name, s.quantity, s.reorder_point, p.price, p.price_id, (p.modified_date) as price_date, "
                        "s.notes, s.date_added, s.added_by, s.date_modified, s.modified_by "
                        "FROM SUPPLY s "
                        "INNER JOIN ITEM_TYPE it ON s.item_type_id = it.item_type_id "
-                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id")
+                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id"
+                        " LEFT JOIN (SELECT p.supply_id, p.price_id, p.price, p.modified_date"
+                         " FROM cis3368DB.PRICE p"
+                        "  WHERE (p.supply_id, p.modified_date) IN ("
+                        "    SELECT supply_id, MAX(modified_date)"
+                         "   FROM PRICE GROUP BY supply_id)) p ON p.supply_id = s.supply_id"
+                        "ORDER BY s.supply_id")
         supplies = cursor.fetchall()
 
         supply_list = []
