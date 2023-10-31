@@ -11,7 +11,10 @@ export const useAppStore = defineStore('app', {
     currentUser: '',    
     currentUserName: '',
     currentRole: '',
-    loginSuccess: false
+    currentFName: '',
+    currentLName: '',
+    loginSuccess: false,
+    forgotPW: false
   }),
   //getter - simiiliar to computed property, getting will change when data changed
   getters: {

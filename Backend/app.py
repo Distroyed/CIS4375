@@ -29,45 +29,6 @@ my_creds = creds.Creds() #access my class called creds in the credy.py file
 link_up = create_connection(my_creds.conString, my_creds.userName, my_creds.password, my_creds.dbName)
 cursor = link_up.cursor(dictionary = True)
 
-# Create the "ACCOUNT" table if not already created
-account_creation_table = '''
-    CREATE TABLE IF NOT EXISTS ACCOUNT (
-        account_id INT AUTO_INCREMENT PRIMARY KEY,
-        username VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        fname VARCHAR(100),
-        lname VARCHAR(100),
-        email VARCHAR(255),
-        phone VARCHAR(20),
-        role VARCHAR(50),
-        sec_question TEXT,
-        sec_response TEXT,
-        date_added DATE,
-        added_by VARCHAR(255),
-        date_modified DATE,
-        modified_by VARCHAR(255)
-    )
-'''
-
-# Execute the SQL code to create the table
-execute_query(link_up, account_creation_table)
-
-# Insert sample user data
-account_data = [
-    ('rayalwaysdies@gmail.com', '6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b', 'John', 'Doe', 'rayalwaysdies@gmail.com', '1234567890', 'admin', 'What is?', 'Blue', '2023-10-09', 'AdminUser', '2023-10-09', 'AdminUser'),
-    ('rayalwayslives@gmail.com', 'd4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35', 'Jane', 'Smith', 'rayalwayslives@gmail.com', '9876543210', 'user', 'What is?', 'Fluffy', '2023-10-09', 'AdminUser', '2023-10-09', 'AdminUser'),
-    ('yourmom@gmail.com', '4e07408562bedb8b60ce05c1decfe3ad16b72230967de01f640b7e4729b49fce', 'Alice', 'Johnson', 'yourmom@gmail.com', '5555555555', 'user', 'What is?', 'Smith', '2023-10-09', 'AdminUser', '2023-10-09', 'AdminUser')
-]
-
-# Loop through user_data and insert it into the table
-for data in account_data:
-    account_query = user_query = f'''
-    INSERT IGNORE INTO ACCOUNT (username, password, fname, lname, email, phone, role, sec_question, sec_response, date_added, added_by, date_modified, modified_by)
-    VALUES ('{data[0]}', '{data[1]}', '{data[2]}', '{data[3]}', '{data[4]}', '{data[5]}', '{data[6]}', '{data[7]}', '{data[8]}', '{data[9]}', '{data[10]}', '{data[11]}', '{data[12]}')
-'''
-    # Execute the query with data from the current user
-    execute_query(link_up, account_query)
-
 ################################################################################################################################## GET APIS ##################################################################################################################################################
 
 #uses the GET command to see if postman can verify the server connects
@@ -638,7 +599,6 @@ def add_account():
     phone = data.get('phone')
     role = data.get('role')
     added_by = data.get('added_by')
-    session_user_role = session['role']
 
     # Check to see if missing info
     if not username or not password:
@@ -646,13 +606,17 @@ def add_account():
 
     # Verify role is admin
     if 'username' in session and 'role' in session and session['role'] == 'admin':
+
+        # Hash the user's password
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+
         try:
             # SQL query to insert the user account into the 'ACCOUNT' table
             insert_query = "INSERT INTO ACCOUNT (username, password, fname, lname, phone, role, added_by) " \
                            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
             # Execute query 
-            cursor.execute(insert_query, (username, password, fname, lname, phone, role, added_by))
+            cursor.execute(insert_query, (username, password_hash, fname, lname, phone, role, added_by))
 
             # Commit the transaction
             link_up.commit()
@@ -661,13 +625,13 @@ def add_account():
             account_id = cursor.lastrowid
 
             # Return a JSON response with the Account_id
-            return jsonify({'Account_id': account_id, 'session_role': session_user_role})
+            return jsonify({'Account_id': account_id})
         
         except Exception as e:
             # If there's an exception during the database operation
             return jsonify({'message': f'Failed to add user account: {str(e)}'})
     else:
-        return jsonify({'message': 'User not authenticated', 'session_role': session_user_role}), 401
+        return jsonify({'message': 'User not authenticated',}), 401
     
 
 # Add vendor API

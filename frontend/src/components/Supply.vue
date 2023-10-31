@@ -28,7 +28,9 @@
         color="primary"
         density="compact"
         variant="underlined"
-        :items="['Sushi','Produce','Other']"
+        item-title="item_type_desc"
+        item-value="item_type_id"
+        :items="itemType"
         prepend-icon="mdi-format-list-bulleted-type"
         clearable></v-autocomplete>
     </v-col>
@@ -60,6 +62,7 @@
                             prepend-icon="mdi-plus"
                             size="small"
                             class="mr-5"
+                            @click="addOrEditSupply()"
                             >
                                 Add More
                             </v-btn>
@@ -70,6 +73,7 @@
                             color="indigo"
                             prepend-icon="mdi-microsoft-excel"
                             size="small"
+                            @click="exportCSV()"
                             >
                                 Export Csv
                             </v-btn>
@@ -100,6 +104,7 @@
                 color="green"
                 icon="mdi-pencil"
                 size="small"
+                @click="addOrEditSupply(item)"
                 :disabled="loading">
             </v-icon>   
             <v-icon
@@ -107,17 +112,155 @@
                 color="red"
                 icon="mdi-trash-can"
                 size="small"
+                @click="deleteSupply(item)"
                 :disabled="loading">
             </v-icon>  
         </template>          
             </v-data-table>
+<!-- Add or Edit Supply Dialog -->
+<v-dialog v-model="addOrEditDialog" persistent width="60%">
+            <v-card>
+                <v-row class="mt-4 justify-center align-center">
+                        <v-card-title v-if="isAdd === 1">
+                            Add New Supply</v-card-title>
+                        <v-card-title v-if="isAdd === 0">
+                            Edit Current Supply</v-card-title></v-row>                    
+                    <v-card-text>
+                        <v-form ref="addOrEditForm">
+                            <v-row class="mx-6 justify-center align-center">
+                                <v-col cols="4">
+                                    <v-text-field
+                                    v-model="supplyItem.item_name"
+                                    label="Supply Name"
+                                    color="primary"
+                                    :rules="[ v => !!v || 'Vendor Name is required']"
+                                    variant="underlined"></v-text-field>
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-text-field
+                                    v-model="supplyItem.reorder_point"
+                                    label="Reorder Point"
+                                    color="primary"
+                                    type="number"
+                                    :rules="[ v => !!v || 'Reorder Point is required']"
+                                    variant="underlined"></v-text-field>
+                                </v-col>
+                                <v-col cols="4">
+                                    <v-textarea
+                                    v-model="supplyItem.notes"
+                                    label="Notes"
+                                    color="primary"
+                                    variant="underlined"
+                                    clearable
+                                    rows="2"
+                                    density="compact"
+                                    :counter= "' 250'"
+                                    ></v-textarea>
+                                </v-col>
+                            </v-row>          
+                            <v-row class="mx-6 justify-center align-center">
+                                <v-col cols="6">
+                                    <v-autocomplete
+                                    v-model="supplyItem.item_type_id"
+                                    label="Select Supply Type"
+                                    :items="itemType"
+                                    color="primary"
+                                    density="compact"
+                                    variant="underlined"
+                                    prepend-icon="mdi-format-list-bulleted-type"
+                                    clearable
+                                    item-title="item_type_desc"
+                                    item-value="item_type_id"
+                                    ></v-autocomplete>
+                                </v-col>
+                                <v-col cols="6">
+                                    <v-autocomplete
+                                    v-model="supplyItem.vendor_id"
+                                    label="Select Vendor"
+                                    :items="vendor"
+                                    color="primary"
+                                    density="compact"
+                                    variant="underlined"
+                                    prepend-icon="mdi-format-list-bulleted-type"
+                                    clearable
+                                    item-title="vendor_name"
+                                    item-value="vendor_id"
+                                    ></v-autocomplete>
+                                </v-col>                                
+                            </v-row>        
+                        </v-form>
+                            <v-row justify="center" class="mt-8">
+                                <v-card-actions>
+                                    <v-btn
+                                    variant="flat"
+                                    color="green"
+                                    width="150"
+                                    @click.prevent="submitAddOrEdit()"
+                                    :loading="addOrEditLoading"
+                                    prepend-icon="mdi-content-save-outline">
+                                    Save
+                                    </v-btn>
+                                    <v-btn
+                                    variant="flat"
+                                    width="150"
+                                    color="red-lighten-2"
+                                    @click.prevent="closeAddOrEdit()" 
+                                    prepend-icon="mdi-cancel"
+                                    >
+                                    Cancel</v-btn>
+                                </v-card-actions>
+                            </v-row>
+                        </v-card-text>
+            </v-card>
+        </v-dialog>
+        <!-- Delete Supply Dialog -->
+        <v-dialog v-model="delDialog" persistent width="60%">
+            <v-card>
+                <v-row class="mt-4 justify-center align-center">
+                    <v-card-title>
+                        Delete Supply Confirmation</v-card-title>
+                </v-row>                    
+                <v-card-text>
+                    <v-row><h4>Are you sure you want to delete this Supply?</h4></v-row>
+                    <v-row class="mx-10">
+                        <ul>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Item Name:</span> {{ delSupply.item_name }} </p></li>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Reorder Point:</span> {{ delSupply.reorder_point }} </p></li>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Vendor Name:</span> {{ delSupply.vendor_name }} </p></li>
+                                <li><p style="font-size:15px"><span style="font-weight: bold;">Notes:</span> {{ delSupply.notes }} </p></li>
+                        </ul>    
+                    </v-row>
+                    <v-row justify="center">
+                        <v-card-actions>
+                                    <v-btn
+                                    variant="flat"
+                                    color="green"
+                                    width="150"
+                                    @click.prevent="submitDel()"
+                                    :loading="addOrEditLoading"
+                                    prepend-icon="mdi-content-save-outline">
+                                    Save
+                                    </v-btn>
+                                    <v-btn
+                                    variant="flat"
+                                    width="150"
+                                    color="red-lighten-2"
+                                    @click.prevent="delDialog = false" 
+                                    prepend-icon="mdi-cancel"
+                                    >
+                                    Cancel</v-btn>
+                        </v-card-actions>
+                    </v-row>
+                </v-card-text>
+            </v-card>
+        </v-dialog>
         </v-card>
     </Transition>
     </v-container>
 </template>
 <script setup>
 import { useAppStore } from '@/store/app'
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeMount } from 'vue';
 import StoreApi from '@/services/StoreApi';
 const search = ref(null);
 const loading = ref(false)
@@ -128,62 +271,160 @@ const headers = ref([
     { title: 'Item Name', align: 'left', key: 'item_name'  },
     { title: 'Quantity', align: 'left', key: 'quantity'  },
     { title: 'Reorder Amount', align: 'left', key: 'reorder_point '},
-    { title: 'Vendor', align: 'left', key: 'VENDOR' },
-    { title: 'Note', align: 'left', key: 'Notes' },    
+    { title: 'Vendor', align: 'left', key: 'vendor_name' },
+    { title: 'Note', align: 'left', key: 'notes' },    
 ]);
 const displayItems = computed(() =>{
-    if(selectSupplyType.value == 'Sushi'){
+    if(selectSupplyType.value === 1){
         return sushiItems.value;
     }
-    else if(selectSupplyType.value == 'Produce'){
+    else if(selectSupplyType.value === 2){
         return produceItem.value;
     }
     else{
         return otherItems.value;
     }
 });
-const sushiItems = ref([
-    {ID:1, item_name:'Escolar', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:2, item_name:'Ika Salad',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Ocean Wave', PRICE:'1000.00'},
-    {ID:3, item_name:'Katsu Mirin (banito seasoning)', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Wismettac', PRICE:'1000.00'},
-    {ID:4, item_name:'Masago - habanero', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Wismettac', PRICE:'1000.00'},
-    {ID:5, item_name:'Masago - jalapeno',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:6, item_name:'Masago - orange', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:7, item_name:'Nori - full sheet',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:8, item_name:'Poke bowls',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:9, item_name:'Salmon',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:10, item_name:'Soft Shell Crab - hotel',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-]);
-const produceItem = ref([
-    {ID:1, item_name:'Enoki Mushroom', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:2, item_name:'King Mushroom',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:3, item_name:'Avocados', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:4, item_name:'Carrot', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:5, item_name:'Avocado',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:6, item_name:'Eggs', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:7, item_name:'Cilantro',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:8, item_name:'Celery',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:9, item_name:'Jalapenos',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:10, item_name:'Mango',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-]);
-const otherItems = ref([
-    {ID:1, item_name:'16 oz soup container', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:2, item_name:'2 oz cups w/lids',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:3, item_name:'8 oz soup container', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:4, item_name:'Coconut Milk', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:5, item_name:'Honey',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:6, item_name:'Maple syrup', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:7, item_name:'Salt',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:8, item_name:'Sugar',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:9, item_name:'Halal Chicken - grilled',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:10, item_name:'Corn Kernnels',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-]);
+const sushiItems = ref([]);
+const produceItem = ref([]);
+const otherItems = ref([]);
 const selectSupplyType = ref();
+const itemType = ref([]);
+const vendor = ref([]);
+const allSupply = ref([])
+//Fetch Data to table
+onBeforeMount(async () => {
+    try{
+        const res = await StoreApi.getSupply();
+        console.log(res.data)
+        if(res.status === 200){
+            allSupply.value = res.data;
+            sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
+            produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
+            otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
+            itemType.value = (await StoreApi.getItemType()).data;
+        }
+        
+        vendor.value = (await StoreApi.getVendor()).data;
+    }
+    catch(error){
+        if(error.message){
+            piniaStore.setSnackBar(error.message + ".Please contact IT for support");
+        }
+        else piniaStore.setSnackBar("Error in getting Supply Data. Please contact IT for support");
+    }
+});
+
 
 //View Price History
 const priceHistItem = ref({});
 async function viewPriceHist(item){
     console.log(item.raw);
+}
+
+//Open Add or Edit Account Dialog
+const addOrEditForm = ref(null);
+const supplyItem = ref({});
+const isAdd = ref(-1);
+const addOrEditDialog = ref(false);
+const addOrEditLoading = ref(false);
+async function addOrEditSupply(item){
+    if(item)
+    {
+        //This is edit
+        isAdd.value = 0;
+        supplyItem.value = Object.assign({}, item.raw);
+    }
+    else
+    {
+        //This is add
+        isAdd.value = 1
+    }
+    addOrEditDialog.value = true;
+}
+
+//Submit Add or Edit Supply to Backend
+async function submitAddOrEdit()
+{
+    const {valid} = await addOrEditForm.value.validate();
+    if(valid){
+        try{
+        addOrEditLoading.value = true;
+        if(isAdd.value === 1){
+            //Send Added Supply Info To Backend
+            supplyItem.value.added_by = piniaStore.currentUserName;
+            console.log(supplyItem.value);
+            const res =  await StoreApi.addSupply(supplyItem.value);
+            if(res.status === 200)
+            {
+                //GET RETURN ID
+                piniaStore.setSnackBar("Supply added successfully");
+                allSupply.value.push(supplyItem.value);
+            }
+        }
+        else{
+            //Send Editted Supply Info to Backend
+            supplyItem.value.modified_by = piniaStore.currentUserName;
+            const res =  await StoreApi.editSupply(supplyItem.value);
+            if(res.status === 200) {
+                const index = allSupply.value.findIndex(obj => obj.supply_id === supplyItem.value.supply_id);
+                if (index !== -1) {
+                    allSupply.value[index] = supplyItem.value;
+                }
+            }
+        }
+        addOrEditLoading.value = false;
+        closeAddOrEdit();
+    }
+    catch(error){
+        if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
+    }   
+    }
+    else{
+        piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
+    }
+}
+//Cancel Adding or Editting Supply
+function closeAddOrEdit(){
+    isAdd.value = -1;
+    supplyItem.value = {};
+    addOrEditDialog.value = false;
+    addOrEditForm.value.reset();
+    addOrEditForm.value.resetValidation();
+}
+
+//Delete Supply
+const delSupply = ref({});
+const delLoading = ref(false);
+const delDialog = ref(false);
+async function deleteSupply(item){
+    if(item){
+        delDialog.value = true;
+        delSupply.value = Object.assign({}, item.raw);
+        console.log(delSupply.value);
+    }    
+    else{
+        piniaStore.setSnackBar("An error occurs, please contact IT for support!");
+    }
+}
+async function submitDel(){
+    try{
+        delLoading.value = true;
+        //Send data to backend
+        const res = await StoreApi.delSupply(delSupply.value.supply_id);
+        if(res.status === 200){
+            const index = allSupply.value.findIndex(i => i.supply_id === delSupply.value.supply_id);
+            allSupply.value.splice(index, 1);
+            piniaStore.setSnackBar("Vendor deleted successfully");
+        }            
+        delLoading.value = false;
+        delDialog.value = false;
+    }
+    catch(error){
+        if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Deleting Account. Please Contact IT For Support");
+    }   
 }
 
 //Export To CSV file
@@ -192,25 +433,30 @@ function exportCSV(){
     exportItem.value = displayItems.value;
     const csvString = [
         [
-            'Username',
-            'First Name',
-            'Last Name',
-            'Email',
-            'Phone',
-            'Role',
+            'Item Type',
+            'Item Name',
+            'Quantity',
+            'Reorder Point',
+            'Price',
+            'Note',
+            'Vendor',
             'Added By',
-            'Date Added'
+            'Date Added',
+            'Modified By',
+            'Modified Date'
         ],
         ...exportItem.value.map( item => [
-            item.username,
-            item.fname,
-            item.lname,
-            item.email,
-            item.phone,
-            item.role,
-            item.added_by,
-            item.Enabled,
-            item.date_added
+            item.item_type_desc,
+            item.item_name,
+            item.quantity,
+            item.reorder_point,
+            item.price,
+            item.notes,
+            item.vendor_name,
+            item.added_by,            
+            item.date_added,
+            item.modified_by,
+            item.date_modified
         ])
     ]
     .map(e => e.join(","))

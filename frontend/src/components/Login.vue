@@ -44,7 +44,7 @@
                                 label="Remember Me"
                                 value="remember"
                             ></v-checkbox>
-                            <a class="mt-5">Forgot Password</a>
+                            <a class="mt-5" @click="ForgotPassword">Forgot Password</a>
                         </v-row>                           
                     </v-form>
                 </v-card-text>
@@ -116,14 +116,13 @@ async function login(){
                 if(response.data.role){
                     piniaStore.currentRole = response.data.role;
                 }
-                piniaStore.currentUserName = username.value;                
-                console.log(piniaStore.loginSuccess);
+                piniaStore.currentUserName = username.value;    
+                piniaStore.currentUser = response.data.fname + response.data.lname;  
                 router.push({name: 'Home'})
             }
         }
         catch(error)
         {
-            console.log(error);
             if(error.response.status === 404 || error.response.status === 401){
                 errorLogin.value = true;
             }
@@ -138,5 +137,9 @@ async function login(){
     {
       piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
     }    
+}
+function ForgotPassword(){
+    router.push({name: 'Login'});
+    piniaStore.forgotPW = true;
 }
 </script>
