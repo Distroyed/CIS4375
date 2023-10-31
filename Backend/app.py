@@ -39,13 +39,15 @@ def home():
 #example API endpoint that checks the user's role
 @app.route('/rolecheck', methods=['GET'])
 def rolecheck():
-    user_role = session.get('role')
+    current_role = request.headers.get('role') # role is in the header
 
-    if user_role:
-        if user_role == 'admin':
+    if current_role:
+        if current_role == 'admin':
             return jsonify({'message': 'Admin auth'}), 200
-        elif user_role == 'user':
+        elif current_role == 'user':
             return jsonify({'message': 'User auth'}), 200
+        elif current_role == 'editor':
+            return jsonify({'message': 'Editor auth'}), 200
         else:
             return jsonify({'message': 'Role not recognized'}), 403
     else:
@@ -276,8 +278,9 @@ def update_password():
 # Update vendor information by Vendor_id
 @app.route('/vendor/edit', methods=['PUT'])
 def edit_vendor():
-    # Check if the current user has the 'Admin' role
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
+    current_role = request.headers.get('role') # role is in the header
+    # Check if the current user has the 'Admin' or 'Edit' role
+    if current_role == 'admin' or current_role == 'editor':
         try:
             data = request.get_json()
             vendor_id = data.get('Vendor_id')
@@ -321,16 +324,17 @@ def edit_vendor():
 def edit_supply():
     data = request.get_json()
     supply_id = data.get('supply_id')  # Receive the supply_id from the frontend
+    current_role = request.headers.get('role') # role is in the header
 
     if not supply_id:
         return jsonify({'message': 'supply_id is required'}), 400
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if 'username' in session and 'role' in session and session['role'] != 'admin':
+    if current_role not in ('admin', 'editor'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     # Check if the current user has the 'Admin' role
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
+    if current_role == 'admin' or current_role == 'editor':
         try:
             # Get the current price from the 'SUPPLY' table
             cursor.execute("SELECT price FROM SUPPLY WHERE supply_id = %s", (supply_id,))
@@ -392,16 +396,17 @@ def edit_supply():
 def order():
     data = request.get_json()
     orders = data.get('orders')  # Assuming 'orders' is an array of objects
+    current_role = request.headers.get('role') # role is in the header
 
     if not orders:
         return jsonify({'message': 'No orders provided'}), 400
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if 'username' in session and 'role' in session and session['role'] != 'admin':
+    if current_role not in ('admin', 'editor'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     # Check if the current user has the 'Admin' role
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
+    if current_role == 'admin' or current_role == 'editor':
         try:
             for order in orders:
                 supply_id = order.get('supply_id')
@@ -585,12 +590,12 @@ def forgot_password_answer():
         # Handle exceptions
         return jsonify({'message': str(e)}), 500
 
-# Add Account 
+#Add Account 
 @app.route('/account/add', methods=['POST'])
 def add_account():
     # Contains JSON data
     data = request.get_json()
-    
+    current_role = request.headers.get('role') # role is in the header
     # Extract data from the request
     username = data.get('username')
     password = data.get('password')
@@ -598,25 +603,22 @@ def add_account():
     lname = data.get('lname')
     phone = data.get('phone')
     role = data.get('role')
-    added_by = data.get('added_by')
+    added_by = request.headers.get('username') # username is in the header
 
-    # Check to see if missing info
+
+    ##### Check to see if missing info
     if not username or not password:
         return jsonify({'message': 'Username and password are required'}), 400
 
     # Verify role is admin
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
-
-        # Hash the user's password
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-
+    if current_role == 'admin':
         try:
             # SQL query to insert the user account into the 'ACCOUNT' table
             insert_query = "INSERT INTO ACCOUNT (username, password, fname, lname, phone, role, added_by) " \
                            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
             # Execute query 
-            cursor.execute(insert_query, (username, password_hash, fname, lname, phone, role, added_by))
+            cursor.execute(insert_query, (username, password, fname, lname, phone, role, added_by))
 
             # Commit the transaction
             link_up.commit()
@@ -625,23 +627,24 @@ def add_account():
             account_id = cursor.lastrowid
 
             # Return a JSON response with the Account_id
-            return jsonify({'Account_id': account_id})
-        
+            return jsonify({'Successful add of Account': account_id})
+
         except Exception as e:
             # If there's an exception during the database operation
             return jsonify({'message': f'Failed to add user account: {str(e)}'})
     else:
-        return jsonify({'message': 'User not authenticated',}), 401
-    
+        return jsonify({'message': 'User not authenticated'}), 401 
+
 
 # Add vendor API
 @app.route('/vendor/add', methods=['POST'])
 def add_vendor():
     data = request.get_json()
+    current_role = request.headers.get('role') # role is in the header
     vendor_name = data.get('vendor_name')
     address = data.get('address')
     city = data.get('city')
-    state_abbr = data.get('state_abbr')
+    state_id = data.get('state_id')
     ZIP = data.get('ZIP')
     contact_name = data.get('contact_name')
     contact_phone = data.get('contact_phone')
@@ -649,27 +652,28 @@ def add_vendor():
     email = data.get('email')
     ordering_channel = data.get('ordering_channel')
     notes = data.get('notes')
+    added_by = request.headers.get('username') # username is in the header
+
   
-
-
-    if not vendor_name or not address or not city or not state_abbr or not ZIP or not contact_name or not contact_phone or not order_phone or not email or not ordering_channel:
+ 
+    if not vendor_name or not address or not city or not state_id or not ZIP or not contact_name or not contact_phone or not order_phone or not email or not ordering_channel:
         return jsonify({'message': 'All fields are required'}), 400
 
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if 'username' in session and 'role' in session and session['role'] != 'admin':
+    if current_role not in ('admin', 'editor'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     
     # Check if the current user has the 'Admin' or 'Edit' role
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
+    if current_role == 'admin' or current_role == 'editor':
         try:
             # SQL query to insert the vendor into the 'VENDOR' table
-            insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
+            insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_id, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
                         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
             # Execute the SQL query with the provided data
-            cursor.execute(insert_query, (vendor_name, address, city, state_abbr, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes))
+            cursor.execute(insert_query, (vendor_name, address, city, state_id, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by))
 
             # Commit the transaction to save the changes in the database
             link_up.commit()
@@ -688,13 +692,15 @@ def add_vendor():
 @app.route('/supply/add', methods=['POST'])
 def add_supply():
     data = request.get_json()
+    current_role = request.headers.get('role') # role is in the header
     item_name = data.get('item_name')
     item_type_id = data.get('item_type_id')
     item_type_desc = data.get('item_type_desc')
     vendor_id = data.get('vendor_id')
-    reorder_point = data.get('reorder_point')
-    added_by = data.get('added_by')
+    reorder_point = data.get('reorder_point') 
     price = data.get('price')
+    added_by = request.headers.get('username') # username is in the header
+
  
     
 
@@ -703,13 +709,16 @@ def add_supply():
 
     
 
-    if 'username' in session and 'role' in session and session['role'] != 'admin':
-        return jsonify({'message': 'Only Admins or Editors can add supplies'}), 403
+    # If the current user is not authenticated, return a 401 Unauthorized response
+    if current_role not in ('admin', 'editor'):
+        return jsonify({'message': 'User not authenticated'}), 401
     
     try:
         # SQL query to insert the supply into the 'SUPPLY' table
-        supply_insert_query = "INSERT INTO SUPPLY (item_name, item_type_id, item_type_desc, vendor_id, reorder_point, added_by) " \
-                              "VALUES (%s, %s, %s, %s, %s, %s)"
+        supply_insert_query = "INSERT INTO SUPPLY (item_name, item_type_id, vendor_id, reorder_point, added_by) " \
+                              "SELECT %s, %s, %s, %s, %s " \
+                              "FROM ITEM_TYPE " \
+                              "WHERE item_type_id = %s"
 
         # Execute the SQL query with the provided data
         cursor.execute(supply_insert_query, (item_name, item_type_id, item_type_desc, vendor_id, reorder_point, added_by))
@@ -740,8 +749,10 @@ def add_supply():
 # Account Delete
 @app.route('/account/delete/<int:account_id>', methods=['DELETE'])
 def delete_account(account_id):
+    current_role = request.headers.get('role') # role is in the header
+
     # Check if the current user is logged in and has an "Admin" role
-    if 'username' in session and 'role' in session and session['role'] == 'admin':
+    if current_role == 'admin' or current_role == 'editor':
         try:
             # query to delete account from the 'ACCOUNT' table based on account_id
             delete_query = "DELETE FROM ACCOUNT WHERE account_id = %s"
@@ -759,10 +770,11 @@ def delete_account(account_id):
         return jsonify({'message': 'Unauthorized. You must be logged in as an admin to delete a user account.'})
     
 # Vendor Delete     
-@app.route('/account/delete/<int:vendor_id>', methods=['DELETE'])
+@app.route('/vendor/delete/<int:vendor_id>', methods=['DELETE'])
 def delete_vendor(vendor_id):
     # Check if the current user role
-    if 'username' in session and 'role' in session and (session['role'] == 'admin' or session['role'] == 'edit'):
+    current_role = request.headers.get('role') # role is in the header
+    if current_role == 'admin' or current_role == 'editor':
         try:
             # query to delete vendor from the 'VENDOR' table based on vendor_id
             delete_query = "DELETE FROM VENDOR WHERE vendor_id = %s"
@@ -782,8 +794,8 @@ def delete_vendor(vendor_id):
 # Supply Delete     
 @app.route('/supply/delete/<int:supply_id>', methods=['DELETE'])
 def delete_supply(supply_id):
-    # Check if the current user role
-    if 'username' in session and 'role' in session and (session['role'] == 'admin' or session['role'] == 'edit'):
+    current_role = request.headers.get('role') # role is in the header
+    if current_role == 'admin' or current_role == 'editor':
         try:
             # query to delete supply from the 'SUPPLY' table based on supply_id
             delete_query = "DELETE FROM SUPPLY WHERE supply_id = %s"
