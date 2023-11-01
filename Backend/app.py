@@ -757,7 +757,7 @@ def delete_account(account_id):
     current_role = request.headers.get('role') # role is in the header
 
     # Check if the current user is logged in and has an "Admin" role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin':
         try:
             # query to delete account from the 'ACCOUNT' table based on account_id
             delete_query = "DELETE FROM ACCOUNT WHERE account_id = %s"
