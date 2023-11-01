@@ -34,7 +34,7 @@ cursor = link_up.cursor(dictionary = True)
 #uses the GET command to see if postman can verify the server connects
 @app.route('/', methods=['GET']) #default url (http://127.0.0.1:5050/)
 def home():
-    return '<h1> Welcome to the memes. </h1>' #message to confirm the code has connected with route
+    return '<h1> Welcome to Sushi. </h1>' #message to confirm the code has connected with route
 
 #example API endpoint that checks the user's role
 @app.route('/rolecheck', methods=['GET'])
@@ -183,10 +183,11 @@ def get_vendors():
                 "vendor_name": vendor["vendor_name"],
                 "address": vendor["address"],
                 "city": vendor["city"],
-                "state_abbr": vendor["state_abbr"],
+                "state_id": vendor["state_id"],
                 "zip": vendor["ZIP"],
                 "contact_name": vendor["contact_name"],
-                "phone": vendor["phone"],
+                "contact_phone": vendor["contact_phone"],
+                "order_phone": vendor["order_phone"],
                 "email": vendor["email"],
                 "ordering_channel": vendor["ordering_channel"],
                 "notes": vendor["notes"],
@@ -290,7 +291,7 @@ def edit_vendor():
 
             # SQL query to update the vendor in the 'VENDOR' table
             update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_id = %s, ZIP = %s, " \
-                        "contact_name = %s, contact_phone = %s, email = %s, ordering_channel = %s, " \
+                        "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
                         "notes = %s WHERE Vendor_id = %s"
 
             # Execute the SQL query with the provided data
@@ -302,6 +303,7 @@ def edit_vendor():
                 data.get('ZIP'),
                 data.get('contact_name'),
                 data.get('contact_phone'),
+                data.get('order_phone'),
                 data.get('email'),
                 data.get('ordering_channel'),
                 data.get('notes'),
@@ -613,12 +615,15 @@ def add_account():
     # Verify role is admin
     if current_role == 'admin':
         try:
+            # Hash the password using a secure hash function like SHA-256
+            hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
             # SQL query to insert the user account into the 'ACCOUNT' table
             insert_query = "INSERT INTO ACCOUNT (username, password, fname, lname, phone, role, added_by) " \
                            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
 
             # Execute query 
-            cursor.execute(insert_query, (username, password, fname, lname, phone, role, added_by))
+            cursor.execute(insert_query, (username, hashed_password, fname, lname, phone, role, added_by))
 
             # Commit the transaction
             link_up.commit()
