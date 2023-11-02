@@ -184,6 +184,7 @@ def get_vendors():
                 "address": vendor["address"],
                 "city": vendor["city"],
                 "state_id": vendor["state_id"],
+                "state_abbr": vendor["state_abbr"]
                 "zip": vendor["ZIP"],
                 "contact_name": vendor["contact_name"],
                 "contact_phone": vendor["contact_phone"],
