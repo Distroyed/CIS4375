@@ -96,7 +96,7 @@ def timelimit_link(link_id):
 def getAccountAll () :
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM users")
+        cursor.execute("SELECT * FROM ACCOUNT")
         users = cursor.fetchall()
 
 
@@ -220,7 +220,7 @@ def get_supplies():
                         "  WHERE (p.supply_id, p.modified_date) IN ("
                         "    SELECT supply_id, MAX(modified_date)"
                          "   FROM PRICE GROUP BY supply_id)) p ON p.supply_id = s.supply_id"
-                        "ORDER BY s.supply_id")
+                        " ORDER BY s.supply_id")
         supplies = cursor.fetchall()
 
         supply_list = []
