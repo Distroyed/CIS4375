@@ -137,7 +137,7 @@
                                 </v-col>
                             </v-row>                            
                             <v-row class="mx-6">                                
-                                <v-col cols="4">
+                                <v-col cols="6">
                                     <v-text-field
                                     v-model="accountItem.phone"
                                     label="Phone"
@@ -145,7 +145,7 @@
                                     :rules="phoneRule"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col cols="6">
                                     <v-autocomplete
                                     v-model="accountItem.role"
                                     label="Role"
@@ -156,6 +156,26 @@
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
                             </v-row>    
+                            <v-row class="mx-6">       
+                                <v-col cols="6">
+                                    <v-autocomplete
+                                    v-model="accountItem.sec_question"
+                                    label="Security Question"
+                                    color="primary"
+                                    :rules="[ v => !!v || 'Security Question is required']"
+                                    clearable
+                                    :items="securityQuestions"
+                                    variant="underlined"></v-autocomplete>
+                                </v-col>
+                                <v-col cols="6">
+                                    <v-text-field
+                                    v-model="accountItem.sec_response"
+                                    label="Security Answer"
+                                    color="primary"
+                                    :rules="[ v => !!v || 'Security Question is required']"
+                                    variant="underlined"></v-text-field>
+                                </v-col>
+                            </v-row> 
                             <div v-if="isAdd === 1">
                                 <v-row class="mx-6">
                                     <v-col cols="6">
@@ -251,12 +271,12 @@
                         Delete Account Confirmation</v-card-title>
                 </v-row>                    
                 <v-card-text>
+                    <v-row justify="center"><h3>Are you sure you want to delete the following account?</h3></v-row>
                     <v-row class="mx-10">
                         <ul>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Username:</span> {{ delAccount.username }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">First Name:</span> {{ delAccount.fname }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Last Name:</span> {{ delAccount.lname }} </p></li>
-                                <li><p style="font-size:15px"><span style="font-weight: bold;">Email:</span> {{ delAccount.email }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Phone:</span> {{ delAccount.phone }} </p></li>
                                 <li><p style="font-size:15px"><span style="font-weight: bold;">Role:</span> {{ delAccount.role }} </p></li>
                         </ul>    
@@ -371,48 +391,93 @@ async function addOrEditAccount(item){
     addOrEditDialog.value = true;
 }
 
+const securityQuestions = ref([
+  "What is your mother's maiden name?",
+  "What was the name of your first pet?",
+  "In what city were you born?",
+  "What is your favorite book?",
+  "What is the name of your favorite teacher?",
+  "What is your favorite color?",
+  "What is the make and model of your first car?",
+  "What is the name of your childhood best friend?",
+  "What is your favorite movie?",
+  "What was the street you grew up on?",
+  "What is your favorite food?",
+  "What is your favorite vacation destination?",
+  "What is your favorite sports team?",
+  "What is your favorite hobby?",
+  "What is your favorite musical artist or band?",
+  "What is your favorite historical figure?"
+]);
+
+
 //Reset Password
 const resetPw = ref(false);
 const passwordsDoNotMatch = computed(() => accountItem.value.password !== accountItem.value.new_password)
+function getCurrentDateTimeString() {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
 
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const now = new Date();
+
+  const dayOfWeek = days[now.getUTCDay()];
+  const dayOfMonth = now.getUTCDate().toString().padStart(2, '0');
+  const month = months[now.getUTCMonth()];
+  const year = now.getUTCFullYear();
+  const hours = now.getUTCHours().toString().padStart(2, '0');
+  const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = now.getUTCSeconds().toString().padStart(2, '0');
+
+  return `${dayOfWeek}, ${dayOfMonth} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+}
 //Submit Add or Edit Account to Backend
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
+    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
     if(valid && !passwordsDoNotMatch.value){
         try{
-            //await StoreApi.checkRole();
         addOrEditLoading.value = true;
-        if(isAdd.value === 1){
-            accountItem.value.added_by = piniaStore.currentUserName;
-            console.log(accountItem.value)            
+        if(isAdd.value === 1){        
             //Send Added Account Info To Backend
-            const res =  await StoreApi.addAccount(accountItem.value);
+            const res =  await StoreApi.addAccount(accountItem.value, customHeaders );
             if(res.status === 200)
             {
-                piniaStore.setSnackBar("Account added successfully");
+                accountItem.value.added_by = piniaStore.currentUserName;
+                accountItem.value.date_added = getCurrentDateTimeString();
+                piniaStore.setSnackBar("Account added successfully", true);
+                accountItem.value.account_id = res.data.account_id;
+                console.log(accountItem.value)
                 displayItems.value.push(accountItem.value);
             }            
         }
         else{
             //Send Editted Account Info to Backend
             accountItem.value.modified_by = piniaStore.currentUserName;
-            console.log(accountItem.value)
-            const res =  await StoreApi.editAccount(accountItem.value);
+            const res =  await StoreApi.editAccount(accountItem.value, customHeaders);
             if(res.status === 200) {
+                accountItem.value.modified_by = piniaStore.currentUserName;
+                accountItem.value.date_modified = getCurrentDateTimeString();
                 const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
                 if (index !== -1) {
                     displayItems.value[index] = accountItem.value;
                 }
+                piniaStore.setSnackBar("Account modified successfully", true);
             }
-        }
-        addOrEditLoading.value = false;
+        }        
         closeAddOrEdit();
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
             else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
     }   
+    finally{
+        addOrEditLoading.value = false;
+    }
     }
     else{
         piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
@@ -445,7 +510,8 @@ async function submitDel(){
     try{
         delLoading.value = true;
         //Send data to backend
-        const res = await StoreApi.delAccount(delAccount.value.account_id);
+        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+        const res = await StoreApi.delAccount(delAccount.value.account_id, customHeaders);
         if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.account_id === delAccount.value.account_id);
             displayItems.value.splice(index, 1);
