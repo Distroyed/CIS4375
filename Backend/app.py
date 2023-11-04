@@ -413,7 +413,7 @@ def edit_account():
     current_role = request.headers.get('role') # role is in the header
     current_user = request.headers.get('username')
     # Check if the current user has the 'Admin' or 'Edit' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin':
         try:
             data = request.get_json()
             account_id = data.get('account_id')
