@@ -17,7 +17,7 @@ from sql import execute_query
 import creds
 import hashlib
 import datetime
-
+from datetime import datetime
 #setting an application name
 app = flask.Flask(__name__) #sets up application
 CORS(app) #necessary for front end code to send properly
@@ -184,8 +184,8 @@ def get_vendors():
                 "address": vendor["address"],
                 "city": vendor["city"],
                 "state_id": vendor["state_id"],
-                "state_abbr": vendor["state_abbr"]
-                "zip": vendor["ZIP"],
+                "state_abbr": vendor["state_abbr"],
+                "ZIP": vendor["ZIP"],
                 "contact_name": vendor["contact_name"],
                 "contact_phone": vendor["contact_phone"],
                 "order_phone": vendor["order_phone"],
@@ -205,23 +205,16 @@ def get_vendors():
         return jsonify({'error': str(e)}), 500
     
 # API to get Supply Info
-
 @app.route('/supply/get-all', methods=['GET'])
 def get_supplies():
     try:
         cursor = link_up.cursor(dictionary=True)
         cursor.execute("SELECT s.supply_id, s.item_name, s.item_type_id, it.item_type_desc, "
-                       "s.vendor_id, v.vendor_name, s.quantity, s.reorder_point, p.price, p.price_id, (p.modified_date) as price_date, "
+                       "s.vendor_id, v.vendor_name, v.contact_name, v.contact_phone, v.order_phone, v.email, v.ordering_channel, s.quantity, s.reorder_point, s.price, "
                        "s.notes, s.date_added, s.added_by, s.date_modified, s.modified_by "
                        "FROM SUPPLY s "
                        "INNER JOIN ITEM_TYPE it ON s.item_type_id = it.item_type_id "
-                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id"
-                        " LEFT JOIN (SELECT p.supply_id, p.price_id, p.price, p.modified_date"
-                         " FROM cis3368DB.PRICE p"
-                        "  WHERE (p.supply_id, p.modified_date) IN ("
-                        "    SELECT supply_id, MAX(modified_date)"
-                         "   FROM PRICE GROUP BY supply_id)) p ON p.supply_id = s.supply_id"
-                        " ORDER BY s.supply_id")
+                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id")
         supplies = cursor.fetchall()
 
         supply_list = []
@@ -240,7 +233,12 @@ def get_supplies():
                 "date_added": supply["date_added"],
                 "added_by": supply["added_by"],
                 "date_modified": supply["date_modified"],
-                "modified_by": supply["modified_by"]
+                "modified_by": supply["modified_by"],
+                "contact_name": supply["contact_name"],
+                "contact_phone": supply["contact_phone"],
+                "order_phone": supply["order_phone"],
+                "email": supply["email"],
+                "ordering_channel": supply["ordering_channel"]
             }
             supply_list.append(supply_info)
 
@@ -249,6 +247,29 @@ def get_supplies():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# API to get price info by supply_id
+@app.route('/price/<int:supply_id>', methods=['GET'])
+def get_prices(supply_id):
+    try:
+        cursor = link_up.cursor(dictionary=True)
+        query = "SELECT * FROM PRICE WHERE supply_id = %s ORDER BY modified_date ASC "
+        cursor.execute(query, (supply_id,))
+        prices = cursor.fetchall()
+
+        price_list = []
+        for price in prices:
+            price_info = {
+                "price_id": price["price_id"],
+                "supply_id": price["supply_id"],
+                "price": price["price"],
+                "modified_date": price["modified_date"]
+            }
+            price_list.append(price_info)
+        
+        return jsonify(price_list)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 ################################################################################################################################## PUT APIS ##################################################################################################################################################
 # Update password and set is_updated and is_expired in LINK
@@ -281,11 +302,12 @@ def update_password():
 @app.route('/vendor/edit', methods=['PUT'])
 def edit_vendor():
     current_role = request.headers.get('role') # role is in the header
+    current_user = request.headers.get('username')
     # Check if the current user has the 'Admin' or 'Edit' role
     if current_role == 'admin' or current_role == 'editor':
         try:
             data = request.get_json()
-            vendor_id = data.get('Vendor_id')
+            vendor_id = data.get('vendor_id')
 
             if not vendor_id:
                 return jsonify({'message': 'Vendor_id is required'}), 400
@@ -293,7 +315,7 @@ def edit_vendor():
             # SQL query to update the vendor in the 'VENDOR' table
             update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_id = %s, ZIP = %s, " \
                         "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
-                        "notes = %s WHERE Vendor_id = %s"
+                        "notes = %s, modified_by = %s  WHERE vendor_id = %s"
 
             # Execute the SQL query with the provided data
             cursor.execute(update_query, (
@@ -308,6 +330,7 @@ def edit_vendor():
                 data.get('email'),
                 data.get('ordering_channel'),
                 data.get('notes'),
+                current_user,
                 vendor_id
             ))
 
@@ -328,6 +351,8 @@ def edit_supply():
     data = request.get_json()
     supply_id = data.get('supply_id')  # Receive the supply_id from the frontend
     current_role = request.headers.get('role') # role is in the header
+    curerent_username = request.headers.get('username')
+    new_price = data.get('price')
 
     if not supply_id:
         return jsonify({'message': 'supply_id is required'}), 400
@@ -338,19 +363,11 @@ def edit_supply():
 
     # Check if the current user has the 'Admin' role
     if current_role == 'admin' or current_role == 'editor':
-        try:
-            # Get the current price from the 'SUPPLY' table
-            cursor.execute("SELECT price FROM SUPPLY WHERE supply_id = %s", (supply_id,))
-            previous_price_row = cursor.fetchone()
-            if previous_price_row:
-                previous_price = previous_price_row['price']
-            else:
-                return jsonify({'message': 'Supply not found'}), 404
-
+        try:       
             # SQL query to update the supply in the 'SUPPLY' table
             update_query = "UPDATE SUPPLY SET item_name = %s, item_type_id = %s, " \
-                           "vendor_id = %s, quantity = %s, reorder_point = %s, " \
-                           "modified_by = %s, price = %s, notes = %s " \
+                           "vendor_id = %s, reorder_point = %s, " \
+                           "modified_by = %s, price = %s, notes = %s, date_modified = NOW() " \
                            "WHERE supply_id = %s"
 
             # Execute the SQL query with the provided data
@@ -358,10 +375,9 @@ def edit_supply():
                 data.get('item_name'),
                 data.get('item_type_id'),
                 data.get('vendor_id'),
-                data.get('quantity'),
                 data.get('reorder_point'),
-                data.get('modified_by'),
-                data.get('price'),
+                curerent_username,
+                new_price,
                 data.get('notes'),
                 supply_id
             ))
@@ -371,15 +387,13 @@ def edit_supply():
 
             # Now, add data to the 'PRICE' table
             # Define a new SQL query to insert data into the 'PRICE' table
-            price_insert_query = "INSERT INTO PRICE (supply_id, price, modified_date) VALUES (%s, %s, NOW())"
-
-            # Calculate change_amount (new_price - previous_price)
-            price = data.get('price')
+            price_insert_query = "INSERT INTO PRICE (supply_id, price, modified_by, modified_date) VALUES (%s, %s , %s , NOW())"
 
             # Execute the SQL query with the calculated values
             cursor.execute(price_insert_query, (
                 supply_id,
-                price
+                new_price,
+                curerent_username
             ))
 
             # Commit the transaction for the 'PRICE' table
@@ -393,14 +407,57 @@ def edit_supply():
     else:
         return jsonify({'message': 'Permission denied'}), 403  # Forbidden
 
+# Update account information by account_id
+@app.route('/account/edit', methods=['PUT'])
+def edit_account():
+    current_role = request.headers.get('role') # role is in the header
+    current_user = request.headers.get('username')
+    # Check if the current user has the 'Admin' or 'Edit' role
+    if current_role == 'admin' or current_role == 'editor':
+        try:
+            data = request.get_json()
+            account_id = data.get('account_id')
 
+            if not account_id:
+                return jsonify({'message': 'account_id is required'}), 400
+
+            # SQL query to update the vendor in the 'VENDOR' table
+            update_query = "UPDATE ACCOUNT SET username = %s, password = %s, fname = %s, lname = %s, phone = %s, " \
+                        "role = %s, sec_question = %s, sec_response = %s, " \
+                        "date_modified = NOW() , modified_by = %s  WHERE account_id = %s"
+
+            # Execute the SQL query with the provided data
+            cursor.execute(update_query, (
+                data.get('username'),
+                hashlib.sha256(data.get('password').encode()).hexdigest(),
+                data.get('fname'),
+                data.get('lname'),
+                data.get('phone'),
+                data.get('role'),
+                data.get('sec_question'),
+                data.get('sec_response'),
+                current_user,
+                account_id
+            ))
+
+            # Commit the transaction to save the changes in the database
+            link_up.commit()
+
+            return jsonify({'message': 'Account information updated successfully'}), 200
+
+        except Exception as e:
+            # If there's an exception during the database operation, return an error message
+            return jsonify({'message': f'Failed to update Account: {str(e)}'}), 500
+    else:
+        return jsonify({'message': 'Permission denied'}), 403  # Forbidden
     # Update SUPPLY table and add a new row to TRANSACTION table
+
 @app.route('/order', methods=['PUT'])
 def order():
     data = request.get_json()
-    orders = data.get('orders')  # Assuming 'orders' is an array of objects
+    orders = data  # Assuming 'orders' is an array of objects
     current_role = request.headers.get('role') # role is in the header
-
+    current_user = request.headers.get('username')
     if not orders:
         return jsonify({'message': 'No orders provided'}), 400
 
@@ -412,48 +469,36 @@ def order():
     if current_role == 'admin' or current_role == 'editor':
         try:
             for order in orders:
-                supply_id = order.get('supply_id')
-                vendor_id = order.get('vendor_id')
-                modified_by = order.get('modified_by')
+                supply_id = order.get('supply_id')     
                 qty_ordered = order.get('qty_ordered')
-
-                # Get the current quantity from the 'SUPPLY' table
-                cursor.execute("SELECT quantity FROM SUPPLY WHERE supply_id = %s", (supply_id,))
-                current_quantity_row = cursor.fetchone()
-                if current_quantity_row:
-                    current_quantity = current_quantity_row['quantity']
-                else:
-                    return jsonify({'message': 'Supply not found'}), 404
-
-                # Calculate previous_qty, new_qty, and change_qty
-                previous_qty = current_quantity
-                quantity = current_quantity - qty_ordered
-                change_qty = quantity - previous_qty
+                quantity = order.get('quantity')
+                reorder_point = order.get('reorder_point')   
+                report_group = order.get('report_group')      
 
                 # SQL query to update the SUPPLY table
-                update_query = "UPDATE SUPPLY SET vendor_id = %s, quantity = %s, notes = %s, modified_by = %s " \
+                update_query = "UPDATE SUPPLY SET quantity = %s, reorder_point = %s, modified_by = %s, date_modified = NOW() " \
                                "WHERE supply_id = %s"
 
                 # Execute the SQL query with the provided data
                 cursor.execute(update_query, (
-                    vendor_id,
-                    quantity,  # Calculate quantity
-                    order.get('notes'),  # Assuming 'notes' is part of the data
-                    modified_by,
+                    quantity, 
+                    reorder_point,
+                    current_user,
                     supply_id
                 ))
+                if qty_ordered>0:
+                    # SQL query to add a new row to the TRANSACTION table
+                    transaction_query = "INSERT INTO TRANSACTION (report_group, supply_id, modified_by, change_qty, qty_ordered, modified_date) " \
+                                        "VALUES (%s,%s, %s, %s, %s, NOW())"
 
-                # SQL query to add a new row to the TRANSACTION table
-                transaction_query = "INSERT INTO TRANSACTION (supply_id, modified_by, change_qty, qty_ordered) " \
-                                    "VALUES (%s, %s, %s, %s)"
-
-                # Execute the SQL query with the calculated values
-                cursor.execute(transaction_query, (
-                    supply_id,
-                    modified_by,
-                    change_qty,
-                    qty_ordered
-                ))
+                    # Execute the SQL query with the calculated values
+                    cursor.execute(transaction_query, (
+                        report_group,
+                        supply_id,
+                        current_user,
+                        quantity,
+                        qty_ordered
+                    ))
 
             # Commit the transaction to save the changes in the database
             link_up.commit()
@@ -606,6 +651,8 @@ def add_account():
     lname = data.get('lname')
     phone = data.get('phone')
     role = data.get('role')
+    sec_question = data.get('sec_question')
+    sec_response = data.get('sec_response')
     added_by = request.headers.get('username') # username is in the header
 
 
@@ -620,11 +667,11 @@ def add_account():
             hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
             # SQL query to insert the user account into the 'ACCOUNT' table
-            insert_query = "INSERT INTO ACCOUNT (username, password, fname, lname, phone, role, added_by) " \
-                           "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+            insert_query = "INSERT INTO ACCOUNT (username, password, fname, lname, phone, role, added_by, sec_question, sec_response, date_added) " \
+                           "VALUES (%s, %s, %s, %s, %s, %s, %s,%s, %s, NOW())"
 
             # Execute query 
-            cursor.execute(insert_query, (username, hashed_password, fname, lname, phone, role, added_by))
+            cursor.execute(insert_query, (username, hashed_password, fname, lname, phone, role, added_by,sec_question, sec_response ))
 
             # Commit the transaction
             link_up.commit()
@@ -633,11 +680,11 @@ def add_account():
             account_id = cursor.lastrowid
 
             # Return a JSON response with the Account_id
-            return jsonify({'Successful add of Account': account_id})
+            return jsonify({'account_id': account_id}), 200
 
         except Exception as e:
             # If there's an exception during the database operation
-            return jsonify({'message': f'Failed to add user account: {str(e)}'})
+            return jsonify({'message': f'Failed to add user account: {str(e)}'}), 500
     else:
         return jsonify({'message': 'User not authenticated'}), 401 
 
@@ -659,11 +706,9 @@ def add_vendor():
     ordering_channel = data.get('ordering_channel')
     notes = data.get('notes')
     added_by = request.headers.get('username') # username is in the header
-
-  
  
-    if not vendor_name or not address or not city or not state_id or not ZIP or not contact_name or not contact_phone or not order_phone or not email or not ordering_channel:
-        return jsonify({'message': 'All fields are required'}), 400
+    #if not vendor_name or not contact_name or not contact_phone or not email or not ordering_channel:
+    #  return jsonify({'message': 'All fields are required'}), 400
 
 
     # If the current user is not authenticated, return a 401 Unauthorized response
@@ -688,7 +733,7 @@ def add_vendor():
             vendor_id = cursor.lastrowid
 
             # Return a JSON response with the Vendor_id and a 201 Created status code
-            return jsonify({'Vendor_id': vendor_id}), 201
+            return jsonify({'Vendor_id': vendor_id}), 200
 
         except Exception as e:
             # If there's an exception during the database operation, return an error message
@@ -701,19 +746,15 @@ def add_supply():
     current_role = request.headers.get('role') # role is in the header
     item_name = data.get('item_name')
     item_type_id = data.get('item_type_id')
-    item_type_desc = data.get('item_type_desc')
     vendor_id = data.get('vendor_id')
     reorder_point = data.get('reorder_point') 
     price = data.get('price')
+    notes = data.get('notes')
     added_by = request.headers.get('username') # username is in the header
+    date_added = datetime.now()
 
- 
-    
-
-    if not item_name or not item_type_id or not item_type_desc or not vendor_id or not reorder_point or not added_by or not price:
+    if not item_name or not item_type_id or not vendor_id or not reorder_point or not added_by or not price:
         return jsonify({'message': 'All fields are required'}), 400
-
-    
 
     # If the current user is not authenticated, return a 401 Unauthorized response
     if current_role not in ('admin', 'editor'):
@@ -721,13 +762,11 @@ def add_supply():
     
     try:
         # SQL query to insert the supply into the 'SUPPLY' table
-        supply_insert_query = "INSERT INTO SUPPLY (item_name, item_type_id, vendor_id, reorder_point, added_by) " \
-                              "SELECT %s, %s, %s, %s, %s " \
-                              "FROM ITEM_TYPE " \
-                              "WHERE item_type_id = %s"
+        supply_insert_query = "INSERT INTO SUPPLY (item_name, item_type_id, vendor_id, reorder_point, price, notes, added_by, date_added, quantity) " \
+                              " VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 0) "
 
         # Execute the SQL query with the provided data
-        cursor.execute(supply_insert_query, (item_name, item_type_id, item_type_desc, vendor_id, reorder_point, added_by))
+        cursor.execute(supply_insert_query, (item_name, item_type_id, vendor_id, reorder_point, price, notes, added_by, date_added))
 
         # Commit the transaction to save the changes in the database
         link_up.commit()
@@ -736,7 +775,7 @@ def add_supply():
         supply_id = cursor.lastrowid
 
         # SQL query to insert price information into the 'PRICE' table
-        price_insert_query = "INSERT INTO PRICE (price, supply_id, added_by) VALUES (%s, %s, %s)"
+        price_insert_query = "INSERT INTO PRICE (price, supply_id, modified_by) VALUES (%s, %s, %s)"
 
         # Execute the SQL query with price data
         cursor.execute(price_insert_query, (price, supply_id, added_by))
@@ -745,7 +784,7 @@ def add_supply():
         link_up.commit()
 
         # Return a JSON response with the Supply_id and a 201 Created status code
-        return jsonify({'Supply_id': supply_id}), 201
+        return jsonify({'Supply_id': supply_id}), 200
 
     except Exception as e:
         # If there's an exception during the database operation, return an error message
@@ -767,13 +806,13 @@ def delete_account(account_id):
 
             # Check if any rows were affected by the delete operation
             if cursor.rowcount > 0:
-                return jsonify({'message': 'User account deleted successfully'})
+                return jsonify({'message': 'User account deleted successfully'}), 200
             else:
-                return jsonify({'message': 'User account not found'})
+                return jsonify({'message': 'User account not found'}) , 400
         except Exception as e:
-            return jsonify({'message': f'Error on the backend: {str(e)}'})
+            return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin to delete a user account.'})
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin to delete a user account.'}), 400
     
 # Vendor Delete     
 @app.route('/vendor/delete/<int:vendor_id>', methods=['DELETE'])
@@ -789,13 +828,13 @@ def delete_vendor(vendor_id):
 
             # Check if any rows were affected 
             if cursor.rowcount > 0:
-                return jsonify({'message': 'Vendor deleted successfully'})
+                return jsonify({'message': 'Vendor deleted successfully'}), 200
             else:
-                return jsonify({'message': 'Vendor not found'})
+                return jsonify({'message': 'Vendor not found'}), 400
         except Exception as e:
-            return jsonify({'message': f'Error on the backend: {str(e)}'})
+            return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a vendor.'})
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a vendor.'}), 400
     
 # Supply Delete     
 @app.route('/supply/delete/<int:supply_id>', methods=['DELETE'])
@@ -803,6 +842,11 @@ def delete_supply(supply_id):
     current_role = request.headers.get('role') # role is in the header
     if current_role == 'admin' or current_role == 'editor':
         try:
+            # query to delete price from the 'PRICE' table based on supply_id
+            delete_query = "DELETE FROM PRICE WHERE supply_id = %s"
+            cursor.execute(delete_query, (supply_id,))
+            link_up.commit()
+
             # query to delete supply from the 'SUPPLY' table based on supply_id
             delete_query = "DELETE FROM SUPPLY WHERE supply_id = %s"
             cursor.execute(delete_query, (supply_id,))
@@ -810,13 +854,13 @@ def delete_supply(supply_id):
 
             # Check if any rows were affected 
             if cursor.rowcount > 0:
-                return jsonify({'message': 'Vendor deleted successfully'})
+                return jsonify({'message': 'Vendor deleted successfully'}), 200
             else:
-                return jsonify({'message': 'Vendor not found'})
+                return jsonify({'message': 'Vendor not found'}), 400
         except Exception as e:
-            return jsonify({'message': f'Error on the backend: {str(e)}'})
+            return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a vendor.'})
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a supply.'}), 400
 
 if __name__ == '__main__':
     app.run(port=5050)
