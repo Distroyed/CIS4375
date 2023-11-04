@@ -2,153 +2,155 @@
 <v-container class="mt-10 pa-10" fluid fill-height>
     <v-row justify="center">
     <v-responsive class="d-flex fill-height ma-5">
+    <div v-if="!generateReport">
         <v-alert
         color="info"
         icon="$info"
         title="Order Procedure"
-        text="Enter the amount of each items"
+        text="Enter the current quantity of each items"
         closable 
         ></v-alert>
     <v-card elevation="4" variant="outlined">
-        <v-card-title primary-title class="text-center my-4"><h1>Order Supply</h1></v-card-title>
+        <v-card-title primary-title class="text-center my-3"><h1>Order Supply</h1></v-card-title>
         <v-form ref="orderForm">
             <v-card-text>   
-                <v-expansion-panels multiple variant="accordion">
-                    <v-expansion-panel>
-                        <v-expansion-panel-title expand-icon="mdi-plus" collapse-icon="mdi-minus">
-                        <h2 style="text-align: center;">Sushi</h2>
-                        </v-expansion-panel-title>
-                        <v-expansion-panel-text>
-                            <v-row v-for="sushi in updatedSushiItems" :key="sushi.ID">
-                            <v-col cols="3">
-                                <v-list lines="two">
-                                    <v-list-item
-                                ><v-list-item-title>
-                                    <p style="font-weight: bold;">{{ sushi.item_name }}</p>
-                                </v-list-item-title>
-                                <v-list-item-subtitle>$ {{ sushi.PRICE }}</v-list-item-subtitle>
-                                </v-list-item>
-                                </v-list>              
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="sushi.AMOUNT"
-                                label="Amount"
-                                :rules="[]"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="sushi.REORDER_POINT"
-                                label="Reorder Amount"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-autocomplete
-                                v-model="sushi.VENDOR"
-                                :items="vendors"
-                                item-title="vendor_name"
-                                item-value="vendor_id"
-                                clearable
-                                class="mt-2"
-                                variant="outlined"
-                                ></v-autocomplete>
-                            </v-col>
-                        </v-row>    
-                        </v-expansion-panel-text>
-                    </v-expansion-panel>   
-                    <v-expansion-panel>
-                        <v-expansion-panel-title expand-icon="mdi-plus" collapse-icon="mdi-minus">
-                        <h2 style="text-align: center;">Produce</h2>
-                        </v-expansion-panel-title>
-                        <v-expansion-panel-text>
-                            <v-row v-for="produce in updatedProduceItems" :key="produce.ID">
-                            <v-col cols="3">
-                                <v-list lines="two">
-                                    <v-list-item
-                                ><v-list-item-title>
-                                    <p style="font-weight: bold;">{{ produce.item_name }}</p>
-                                </v-list-item-title>
-                                <v-list-item-subtitle>$ {{ produce.PRICE }}</v-list-item-subtitle>
-                                </v-list-item>
-                                </v-list>              
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="produce.AMOUNT"
-                                label="Amount"
-                                :rules="[]"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="produce.REORDER_POINT"
-                                label="Reorder Amount"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-autocomplete
-                                v-model="produce.VENDOR"
-                                :items="vendors"
-                                item-title="vendor_name"
-                                item-value="vendor_id"
-                                clearable
-                                class="mt-2"
-                                variant="outlined"
-                                ></v-autocomplete>
-                            </v-col>
-                        </v-row>    
-                        </v-expansion-panel-text>
-                    </v-expansion-panel>   
-                    <v-expansion-panel>
-                        <v-expansion-panel-title expand-icon="mdi-plus" collapse-icon="mdi-minus">
-                        <h2 style="text-align: center;">Other</h2>
-                        </v-expansion-panel-title>
-                        <v-expansion-panel-text>
-                            <v-row v-for="other in updatedOtherItems" :key="other.ID">
-                            <v-col cols="3">
-                                <v-list lines="two">
+                <v-tabs
+                v-model="tab"
+                color="deep-purple-accent-4"
+                align-tabs="center"
+                >
+                <v-tab value="one" >SUSHI</v-tab>
+                <v-tab value="two" >PRODUCE</v-tab>
+                <v-tab value="three">OTHER</v-tab>
+                </v-tabs>
+                <v-window v-model="tab" class="mt-5">
+                    <v-window-item value="one" >
+                        <v-row v-for="sushi in updatedSushiItems" :key="sushi.supply_id">
+                        <v-col cols="3">
+                            <v-list lines="two">
                                 <v-list-item
-                                ><v-list-item-title>
-                                    <p style="font-weight: bold;">{{ other.item_name }}</p>
-                                </v-list-item-title>
-                                <v-list-item-subtitle>$ {{ other.PRICE }}</v-list-item-subtitle>
-                                </v-list-item>
-                                </v-list>              
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="other.AMOUNT"
-                                label="Amount"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-text-field
-                                v-model="other.REORDER_POINT"
-                                label="Reorder Amount"
-                                class="mt-2"
-                                variant="outlined"></v-text-field>                  
-                            </v-col>
-                            <v-col cols="3">
-                                <v-autocomplete
-                                v-model="other.VENDOR"
-                                :items="vendors"
-                                item-title="vendor_name"
-                                item-value="vendor_id"
-                                clearable
-                                class="mt-2"
-                                variant="outlined"
-                                ></v-autocomplete>
-                            </v-col>
+                            ><v-list-item-title>
+                                <p style="font-weight: bold;">{{ sushi.item_name }}</p>
+                            </v-list-item-title>
+                            <v-list-item-subtitle>$ {{ sushi.price }}</v-list-item-subtitle>
+                            </v-list-item>
+                            </v-list>              
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="sushi.quantity"
+                            label="Current Quantity"
+                            :rules=rules
+                            class="mt-2"
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="sushi.reorder_point"
+                            label="Reorder Amount"
+                            class="mt-2"
+                            :rules=rules
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-autocomplete
+                            v-model="sushi.vendor_id"
+                            :items="vendors"
+                            item-title="vendor_name"
+                            item-value="vendor_id"
+                            clearable
+                            class="mt-2"
+                            disabled
+                            variant="outlined"
+                            ></v-autocomplete>
+                        </v-col>
                         </v-row>    
-                        </v-expansion-panel-text>
-                    </v-expansion-panel>                 
-            </v-expansion-panels> 
+                    </v-window-item>
+                    <v-window-item value="two">
+                        <v-row v-for="produce in updatedProduceItems" :key="produce.supply_id">
+                        <v-col cols="3">
+                            <v-list lines="two">
+                                <v-list-item
+                            ><v-list-item-title>
+                                <p style="font-weight: bold;">{{ produce.item_name }}</p>
+                            </v-list-item-title>
+                            <v-list-item-subtitle>$ {{ produce.price }}</v-list-item-subtitle>
+                            </v-list-item>
+                            </v-list>              
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="produce.quantity"
+                            label="Current Quantity"
+                            :rules=rules
+                            class="mt-2"
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="produce.reorder_point"
+                            label="Reorder Amount"
+                            :rules=rules
+                            class="mt-2"
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-autocomplete
+                            v-model="produce.vendor_id"
+                            :items="vendors"
+                            item-title="vendor_name"
+                            item-value="vendor_id"
+                            clearable
+                            class="mt-2"
+                            variant="outlined"
+                            disabled
+                            ></v-autocomplete>
+                        </v-col>
+                        </v-row>    
+                    </v-window-item>
+                    <v-window-item value="three">
+                        <v-row v-for="other in updatedOtherItems" :key="other.supply_id">
+                        <v-col cols="3">
+                            <v-list lines="two">
+                            <v-list-item
+                            ><v-list-item-title>
+                                <p style="font-weight: bold;">{{ other.item_name }}</p>
+                            </v-list-item-title>
+                            <v-list-item-subtitle>$ {{ other.price }}</v-list-item-subtitle>
+                            </v-list-item>
+                            </v-list>              
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="other.quantity"
+                            label="Current Quantity"
+                            :rules=rules
+                            class="mt-2"
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-text-field
+                            v-model="other.reorder_point"
+                            label="Reorder Amount"
+                            :rules=rules
+                            class="mt-2"
+                            variant="outlined"></v-text-field>                  
+                        </v-col>
+                        <v-col cols="3">
+                            <v-autocomplete
+                            v-model="other.vendor_id"
+                            :items="vendors"
+                            item-title="vendor_name"
+                            item-value="vendor_id"
+                            clearable
+                            class="mt-2"
+                            variant="outlined"
+                            disabled
+                            ></v-autocomplete>
+                        </v-col>
+                        </v-row>    
+                    </v-window-item>
+                </v-window>                
             <v-row justify="center" class="my-5">
                 <v-card-actions>
                     <v-btn
@@ -157,8 +159,9 @@
                     width="200"
                     class="mx-4"
                     @click="saveData"
+                    :loading="loading"
                     prepend-icon="mdi-content-save-outline">
-                    Submit
+                    Generate Report
                     </v-btn>
                     <v-btn
                     variant="flat"
@@ -166,65 +169,259 @@
                     width="200"
                     class="mx-4"
                     @click="undo"
+                    :disabled="loading"
                     prepend-icon="mdi-cancel">
-                    Undo
+                    Undo Report
                     </v-btn>
                 </v-card-actions>
-                
             </v-row>
             </v-card-text>
         </v-form>
     </v-card>
+    </div>
+
+    <div v-if="generateReport">
+        <v-card elevation="4" variant="outlined">
+        <v-card-title primary-title class="text-center my-3"><h1>Order Report</h1></v-card-title>
+        <v-form ref="orderForm">
+            <v-card-text>   
+                <v-tabs
+                v-model="tab"
+                color="deep-purple-accent-4"
+                align-tabs="center"
+                >
+                <v-tab value="one" >SUSHI</v-tab>
+                <v-tab value="two" >PRODUCE</v-tab>
+                <v-tab value="three">OTHER</v-tab>
+                </v-tabs>
+                <v-window v-model="tab" class="mt-5">
+                    <v-window-item value="one" >
+                                <v-table>                                
+                                <thead>
+                                <tr>
+                                    <th class="text-left">
+                                    Item Name
+                                    </th>
+                                    <th class="text-left">
+                                    Current Price
+                                    </th>
+                                    <th class="text-left">
+                                    Quantity Order
+                                    </th>
+                                    <th class="text-left">
+                                    Total Cost
+                                    </th>
+                                    <th class="text-left">
+                                    Vendor Name
+                                    </th>
+                                    <th class="text-left">
+                                    Ordering Channel
+                                    </th>
+                                    <th class="text-left">
+                                    Contact Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Order Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Email
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr
+                                    v-for="item in reportSushi"
+                                    :key="item.supply_id"
+                                >
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.price }}</td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.qty_ordered }}</span></td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.total_cost }}</span></td>
+                                    <td>{{ item.vendor_name }}</td>
+                                    <td>{{ item.ordering_channel }}</td>
+                                    <td>{{ item.contact_phone }}</td>
+                                    <td>{{ item.order_phone }}</td>
+                                    <td>{{ item.email }}</td>
+                                </tr>
+                                </tbody>
+                            </v-table>
+                        </v-window-item>
+                            <v-window-item value="two" >
+                                <v-table>                                
+                                <thead>
+                                <tr>
+                                    <th class="text-left">
+                                    Item Name
+                                    </th>
+                                    <th class="text-left">
+                                    Current Price
+                                    </th>
+                                    <th class="text-left">
+                                    Quantity Order
+                                    </th>
+                                    <th class="text-left">
+                                    Total Cost
+                                    </th>
+                                    <th class="text-left">
+                                    Vendor Name
+                                    </th>
+                                    <th class="text-left">
+                                    Ordering Channel
+                                    </th>
+                                    <th class="text-left">
+                                    Contact Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Order Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Email
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr
+                                    v-for="item in reportProduce"
+                                    :key="item.supply_id"
+                                >
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.price }}</td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.qty_ordered }}</span></td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.total_cost }}</span></td>
+                                    <td>{{ item.vendor_name }}</td>
+                                    <td>{{ item.ordering_channel }}</td>
+                                    <td>{{ item.contact_phone }}</td>
+                                    <td>{{ item.order_phone }}</td>
+                                    <td>{{ item.email }}</td>
+                                </tr>
+                                </tbody>
+                            </v-table>
+                            </v-window-item>
+                                <v-window-item value="three" >
+                                <v-table>                                
+                                <thead>
+                                <tr>
+                                    <th class="text-left">
+                                    Item Name
+                                    </th>
+                                    <th class="text-left">
+                                    Current Price
+                                    </th>
+                                    <th class="text-left">
+                                    Quantity Order
+                                    </th>
+                                    <th class="text-left">
+                                    Total Cost
+                                    </th>
+                                    <th class="text-left">
+                                    Vendor Name
+                                    </th>
+                                    <th class="text-left">
+                                    Ordering Channel
+                                    </th>
+                                    <th class="text-left">
+                                    Contact Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Order Phone
+                                    </th>
+                                    <th class="text-left">
+                                    Email
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr
+                                    v-for="item in reportOther"
+                                    :key="item.supply_id"
+                                >
+                                    <td>{{ item.item_name }}</td>
+                                    <td>{{ item.price }}</td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.qty_ordered }}</span></td>
+                                    <td><span style="color: red; font-weight: bold;">{{ item.total_cost }}</span></td>
+                                    <td>{{ item.vendor_name }}</td>
+                                    <td>{{ item.ordering_channel }}</td>
+                                    <td>{{ item.contact_phone }}</td>
+                                    <td>{{ item.order_phone }}</td>
+                                    <td>{{ item.email }}</td>
+                                </tr>
+                                </tbody>
+                            </v-table>
+                            </v-window-item>    
+                </v-window>                
+            <v-row justify="center" class="my-5">
+                <v-row justify="center" class="mt-8">
+                        <v-card-actions>
+                            <v-btn
+                            variant="flat"
+                            width="150"
+                            color="green"
+                            @click.prevent="exportToCSV()" 
+                            prepend-icon="mdi-microsoft-excel"
+                            >
+                            Export To CSV</v-btn>
+                            <v-btn
+                            variant="flat"
+                            width="150"
+                            color="indigo"
+                            @click.prevent="Complete()" 
+                            prepend-icon="mdi-cancel"
+                            >
+                            Back To Order</v-btn>
+                        </v-card-actions>
+                    </v-row>
+            </v-row>
+            </v-card-text>
+        </v-form>
+    </v-card>
+    </div>
     </v-responsive>
 </v-row>
+<v-dialog v-model="loading" persistent width="20%">
+            <v-card class="align-center justify-center text-center my-5 mx-5">
+                <v-progress-circular
+                class="my-8"
+                :size="120"
+                :width="7"
+                color="indigo"                
+                indeterminate                
+                ></v-progress-circular>
+            </v-card>
+        </v-dialog>
 </v-container>
 </template>
 <script setup>
+import { useRouter } from 'vue-router';
 import { useAppStore } from '@/store/app'
 import { ref, computed, watch, onBeforeMount } from 'vue';
 import StoreApi from '@/services/StoreApi';
+
 const piniaStore = useAppStore();
-const originalSushiItems = ref([
-    {ID:1, item_name:'Escolar', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:2, item_name:'Ika Salad',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Ocean Wave', PRICE:'1000.00'},
-    {ID:3, item_name:'Katsu Mirin (banito seasoning)', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Wismettac', PRICE:'1000.00'},
-    {ID:4, item_name:'Masago - habanero', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Wismettac', PRICE:'1000.00'},
-    {ID:5, item_name:'Masago - jalapeno',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:6, item_name:'Masago - orange', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:7, item_name:'Nori - full sheet',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:8, item_name:'Poke bowls',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:9, item_name:'Salmon',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-    {ID:10, item_name:'Soft Shell Crab - hotel',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Kazy.', PRICE:'1000.00'},
-]);
-const originalProduceItem = ref([
-    {ID:1, item_name:'Enoki Mushroom', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:2, item_name:'King Mushroom',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:3, item_name:'Avocados', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:4, item_name:'Carrot', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:5, item_name:'Avocado',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:6, item_name:'Eggs', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:7, item_name:'Cilantro',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:8, item_name:'Celery',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:9, item_name:'Jalapenos',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:10, item_name:'Mango',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-]);
-const originalOtherItems = ref([
-    {ID:1, item_name:'16 oz soup container', AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:2, item_name:'2 oz cups w/lids',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:3, item_name:'8 oz soup container', AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:4, item_name:'Coconut Milk', AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:5, item_name:'Honey',  AMOUNT:'2', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:6, item_name:'Maple syrup', AMOUNT:'30', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:7, item_name:'Salt',  AMOUNT:'21', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:8, item_name:'Sugar',  AMOUNT:'10', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:9, item_name:'Halal Chicken - grilled',  AMOUNT:'15', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-    {ID:10, item_name:'Corn Kernnels',  AMOUNT:'20', REORDER_POINT:'10', VENDOR:'Food LLC.', PRICE:'1000.00'},
-]);
+const originalSushiItems = ref([])
+const originalProduceItem = ref([])
+const originalOtherItems = ref([])
 const updatedSushiItems = ref([]);
 const updatedOtherItems = ref([]);
 const updatedProduceItems = ref([]);
-onBeforeMount( async() => {
+const allSupply = ref([]);
+const itemType = ref([]);
+const vendors = ref([]);
+const tab = ref("one");
+const rules = ref([
+  v => v !== null || 'Field is required',
+  v => v >= 0 || 'Field must be greater than or equal to 0'
+]);
+async function getData(){
     try{
+        const res = await StoreApi.getSupply();
+        if(res.status === 200){
+            allSupply.value = res.data;
+            originalSushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
+            originalProduceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
+            originalOtherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
+            itemType.value = (await StoreApi.getItemType()).data;
+        }
+        vendors.value = (await StoreApi.getVendor()).data;
         updatedSushiItems.value = JSON.parse(JSON.stringify(originalSushiItems.value));
         updatedProduceItems.value = JSON.parse(JSON.stringify(originalProduceItem.value));
         updatedOtherItems.value = JSON.parse(JSON.stringify(originalOtherItems.value));
@@ -235,20 +432,83 @@ onBeforeMount( async() => {
         }
         else piniaStore.setSnackBar("Error in loading data, please contact IT for support!");
     }
-})
-
-const vendors = ref([
-    {vendor_id:1, vendor_name:'Hui Lin Inc', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
-    {vendor_id:2, vendor_name:'Ocean Wave', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''},
-    {vendor_id:3, vendor_name:'Food LLC.', address:'6319 Denison Oaks Drive', city:'Katy', state_name:'TX', ZIP:'77494', contact_name:'Li', phone:'832-558-0326', email:'', ordering_channel:'Text', notes:''}
-]);
-
+}
+onBeforeMount( async() => {
+    getData()
+});
 function undo(){
     updatedSushiItems.value = JSON.parse(JSON.stringify(originalSushiItems.value));
     updatedProduceItems.value = JSON.parse(JSON.stringify(originalProduceItem.value));
     updatedOtherItems.value = JSON.parse(JSON.stringify(originalOtherItems.value));
 }
+function generateUniqueID() {
+  const timestamp = new Date().getTime().toString(36); // Convert timestamp to base36
+  const randomChars = Math.random().toString(36).substr(2, 5); // Generate random characters
+
+  return `${timestamp}${randomChars}`;
+}
+const orderForm = ref(null);
+const generateReport = ref(false);
+const reportSushi = ref([]);
+const reportProduce = ref([]);
+const reportOther = ref([]);
+const loading = ref(false);
 async function saveData(){
-    console.log(updatedSushiItems.value);
+    const {valid} = await orderForm.value.validate();    
+    if(valid){
+        loading.value = true;
+        reportSushi.value = calculateSupplyValues(updatedSushiItems.value);
+        reportProduce.value = calculateSupplyValues(updatedProduceItems.value);
+        reportOther.value = calculateSupplyValues(updatedOtherItems.value);
+        const finalReport = [...reportSushi.value, ...reportProduce.value, ...reportOther.value];
+        const groupID = generateUniqueID();
+        const finalReportWithID = finalReport.map(obj =>({
+            ...obj,
+            report_group: groupID
+        }));
+        console.log(finalReportWithID)
+        try{
+            const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+            const res = await StoreApi.updateTransaction(finalReportWithID, customHeaders);
+            if(res.status === 200){
+                piniaStore.setSnackBar("Report Created Successfully", true);
+                generateReport.value = true;
+            }            
+        }
+        catch(error){
+        if(error.message){
+            piniaStore.setSnackBar(error.message + ". Please contact IT for support!");
+        }
+        else piniaStore.setSnackBar("Error in generating report, please contact IT for support!");
+        }
+        finally{
+            loading.value = false;
+        }
+    }
+    else{
+        piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
+    }
+}
+
+function calculateSupplyValues(array) {
+  return array
+    .map((obj) => {
+    const qty_ordered = obj.reorder_point - obj.quantity;
+    obj.qty_ordered = qty_ordered >= 0 ? qty_ordered : 0;
+    
+    if (!obj.price || obj.price === "None") {
+      obj.price = 0;
+    } else {
+      obj.price = Number(obj.price).toFixed(2);
+    }    
+    obj.total_cost = Number(obj.qty_ordered * obj.price).toFixed(2);
+    return obj;
+    })
+}
+
+async function Complete(){
+    generateReport.value = false;
+    getData();
+    tab.value = "one";
 }
 </script>
