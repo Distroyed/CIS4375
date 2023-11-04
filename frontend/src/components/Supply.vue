@@ -117,6 +117,51 @@
             </v-icon>  
         </template>          
             </v-data-table>
+            <!-- Price History Dialog -->
+        <v-dialog v-model="priceDialog" persistent width="45%">
+            <v-card>
+                <v-row class="mt-4 justify-center align-center">
+                        <v-card-title>
+                            {{itemName}} - Price History</v-card-title></v-row>                    
+                    <v-card-text>
+                        <v-row justify="center">
+                            <v-table>
+                            <thead>
+                            <tr>
+                                <th class="text-left">
+                                Price
+                                </th>
+                                <th class="text-left">
+                                Date
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr
+                                v-for="item in priceHistItem"
+                                :key="item.price_id"
+                            >
+                                <td>{{ item.price }}</td>
+                                <td>{{ item.modified_date }}</td>
+                            </tr>
+                            </tbody>
+                        </v-table>
+                        </v-row>
+                            <v-row justify="center" class="mt-8">
+                                <v-card-actions>
+                                    <v-btn
+                                    variant="flat"
+                                    width="150"
+                                    color="red-lighten-2"
+                                    @click.prevent="priceDialog = false" 
+                                    prepend-icon="mdi-cancel"
+                                    >
+                                    Close</v-btn>
+                                </v-card-actions>
+                            </v-row>
+                        </v-card-text>
+                    </v-card>
+                </v-dialog>
 <!-- Add or Edit Supply Dialog -->
 <v-dialog v-model="addOrEditDialog" persistent width="60%">
             <v-card>
@@ -128,7 +173,7 @@
                     <v-card-text>
                         <v-form ref="addOrEditForm">
                             <v-row class="mx-6 justify-center align-center">
-                                <v-col cols="4">
+                                <v-col cols="3">
                                     <v-text-field
                                     v-model="supplyItem.item_name"
                                     label="Supply Name"
@@ -136,16 +181,31 @@
                                     :rules="[ v => !!v || 'Vendor Name is required']"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col cols="3">
                                     <v-text-field
                                     v-model="supplyItem.reorder_point"
                                     label="Reorder Point"
                                     color="primary"
                                     type="number"
-                                    :rules="[ v => !!v || 'Reorder Point is required']"
+                                    :rules="[
+                                        v => v !== null || 'Reorder Point is required',
+                                        v => v >= 0 || 'Reorder Point must be greater than or equal to 0'
+                                        ]"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col cols="3">
+                                    <v-text-field
+                                    v-model="supplyItem.price"
+                                    label="Price"
+                                    color="primary"
+                                    type="currency"
+                                    :rules="[
+                                        v => v !== null || 'Price is required',
+                                        v => v >= 0 || 'Reorder Point must be greater than or equal to 0'
+                                        ]"
+                                    variant="underlined"></v-text-field>
+                                </v-col>
+                                <v-col cols="3">
                                     <v-textarea
                                     v-model="supplyItem.notes"
                                     label="Notes"
@@ -171,6 +231,7 @@
                                     clearable
                                     item-title="item_type_desc"
                                     item-value="item_type_id"
+                                    :rules="[ v => !!v || 'Price is required']"
                                     ></v-autocomplete>
                                 </v-col>
                                 <v-col cols="6">
@@ -185,6 +246,7 @@
                                     clearable
                                     item-title="vendor_name"
                                     item-value="vendor_id"
+                                    :rules="[ v => !!v || 'Price is required']"
                                     ></v-autocomplete>
                                 </v-col>                                
                             </v-row>        
@@ -269,10 +331,14 @@ const piniaStore = useAppStore();
 const headers = ref([
     { title: 'Action', align: 'center', key: 'Action'},
     { title: 'Item Name', align: 'left', key: 'item_name'  },
-    { title: 'Quantity', align: 'left', key: 'quantity'  },
-    { title: 'Reorder Amount', align: 'left', key: 'reorder_point '},
+    { title: 'Price', align: 'left', key: 'price'  },
+    { title: 'Reorder Amount', align: 'left', key: 'reorder_point'},
     { title: 'Vendor', align: 'left', key: 'vendor_name' },
-    { title: 'Note', align: 'left', key: 'notes' },    
+    { title: 'Note', align: 'left', key: 'notes' },  
+    { title: 'Date Added', align: 'left', key: 'date_added' },  
+    { title: 'Added By', align: 'left', key: 'added_by' },  
+    { title: 'Date Modified', align: 'left', key: 'date_modified' },    
+    { title: 'Modified By', align: 'left', key: 'modified_by' },  
 ]);
 const displayItems = computed(() =>{
     if(selectSupplyType.value === 1){
@@ -285,9 +351,22 @@ const displayItems = computed(() =>{
         return otherItems.value;
     }
 });
-const sushiItems = ref([]);
-const produceItem = ref([]);
-const otherItems = ref([]);
+function getCurrentDateTimeString() {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+  const dayOfWeek = days[now.getUTCDay()];
+  const dayOfMonth = now.getUTCDate().toString().padStart(2, '0');
+  const month = months[now.getUTCMonth()];
+  const year = now.getUTCFullYear();
+  const hours = now.getUTCHours().toString().padStart(2, '0');
+  const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = now.getUTCSeconds().toString().padStart(2, '0');
+  return `${dayOfWeek}, ${dayOfMonth} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+}
 const selectSupplyType = ref();
 const itemType = ref([]);
 const vendor = ref([]);
@@ -299,6 +378,7 @@ onBeforeMount(async () => {
         console.log(res.data)
         if(res.status === 200){
             allSupply.value = res.data;
+
             sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
             produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
             otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
@@ -314,12 +394,38 @@ onBeforeMount(async () => {
         else piniaStore.setSnackBar("Error in getting Supply Data. Please contact IT for support");
     }
 });
-
+const sushiItems = computed(() => {
+      return allSupply.value.filter((item) => item.item_type_id === 1);
+    });
+const produceItem = computed(() => {
+      return allSupply.value.filter((item) => item.item_type_id === 2);
+    });
+const otherItems = computed(() => {
+      return allSupply.value.filter((item) => item.item_type_id === 3);
+    });
 
 //View Price History
-const priceHistItem = ref({});
+const priceHistItem = ref([]);
+const itemName = ref(null);
+const priceDialog = ref(false);
 async function viewPriceHist(item){
-    console.log(item.raw);
+    try{
+        if(item){
+            const res = await StoreApi.getPriceBySupplyID(item.raw.supply_id);
+            if(res.status === 200){
+                console.log(res.data);
+                priceHistItem.value = res.data;
+            }
+            itemName.value = item.raw.item_name;
+            priceDialog.value = true;
+        }        
+    }
+    catch(error){
+        if(error.message){
+            piniaStore.setSnackBar(error.message + ".Please contact IT for support");
+        }
+        else piniaStore.setSnackBar("Error in getting Price Data of this Supply. Please contact IT for support");
+    }
 }
 
 //Open Add or Edit Account Dialog
@@ -347,30 +453,39 @@ async function addOrEditSupply(item){
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
+    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
     if(valid){
         try{
         addOrEditLoading.value = true;
+        const findVendorName = vendor.value.find((vendorItem) => vendorItem.vendor_id === supplyItem.value.vendor_id);
+        if(findVendorName){
+            supplyItem.value.vendor_name = findVendorName.vendor_name;
+        }
         if(isAdd.value === 1){
-            //Send Added Supply Info To Backend
-            supplyItem.value.added_by = piniaStore.currentUserName;
-            console.log(supplyItem.value);
-            const res =  await StoreApi.addSupply(supplyItem.value);
+            //Send Added Supply Info To Backend            
+            const res =  await StoreApi.addSupply(supplyItem.value, customHeaders);
             if(res.status === 200)
             {
                 //GET RETURN ID
-                piniaStore.setSnackBar("Supply added successfully");
+                supplyItem.value.supply_id = res.data.Supply_id;
+                supplyItem.value.added_by = piniaStore.currentUserName;
+                supplyItem.value.date_added = getCurrentDateTimeString();
+                piniaStore.setSnackBar("Supply added successfully", true);
                 allSupply.value.push(supplyItem.value);
             }
         }
         else{
             //Send Editted Supply Info to Backend
             supplyItem.value.modified_by = piniaStore.currentUserName;
-            const res =  await StoreApi.editSupply(supplyItem.value);
+            const res =  await StoreApi.editSupply(supplyItem.value, customHeaders);
             if(res.status === 200) {
+                supplyItem.value.modified_by = piniaStore.currentUserName;
+                supplyItem.value.date_modified = getCurrentDateTimeString();
                 const index = allSupply.value.findIndex(obj => obj.supply_id === supplyItem.value.supply_id);
                 if (index !== -1) {
-                    allSupply.value[index] = supplyItem.value;
+                    allSupply.value[index] = {...supplyItem.value};
                 }
+                piniaStore.setSnackBar("Supply modified successfully", true);
             }
         }
         addOrEditLoading.value = false;
@@ -410,13 +525,15 @@ async function deleteSupply(item){
 }
 async function submitDel(){
     try{
+        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
         delLoading.value = true;
         //Send data to backend
-        const res = await StoreApi.delSupply(delSupply.value.supply_id);
+        console.log(delSupply.value.supply_id);
+        const res = await StoreApi.delSupply(delSupply.value.supply_id, customHeaders);
         if(res.status === 200){
             const index = allSupply.value.findIndex(i => i.supply_id === delSupply.value.supply_id);
             allSupply.value.splice(index, 1);
-            piniaStore.setSnackBar("Vendor deleted successfully");
+            piniaStore.setSnackBar("Supply deleted successfully", true);
         }            
         delLoading.value = false;
         delDialog.value = false;
