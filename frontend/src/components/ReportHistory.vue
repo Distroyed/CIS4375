@@ -69,7 +69,7 @@ onBeforeMount(async () => {
         if(error.message){
             piniaStore.setSnackBar(error.message + ".Please contact IT for support");
         }
-        else piniaStore.setSnackBar("Error in getting Account Data. Please contact IT for support");
+        else piniaStore.setSnackBar("Error in getting report history data. Please contact IT for support");
     }
     finally{
         loading.value = false;
