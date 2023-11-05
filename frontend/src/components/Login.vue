@@ -18,6 +18,8 @@
                         label="Username"
                         prepend-icon="mdi-account-circle"
                         variant="underlined"
+                        type="email"
+                        placeholder="johndoe@gmail.com"
                         :rules="[ v => !!v || 'Username is required']"
                         v-model="username"
                         ></v-text-field>
