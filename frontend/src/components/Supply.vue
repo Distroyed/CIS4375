@@ -62,6 +62,7 @@
                             prepend-icon="mdi-plus"
                             size="small"
                             class="mr-5"
+                            v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
                             @click="addOrEditSupply()"
                             >
                                 Add More
@@ -104,6 +105,7 @@
                 color="green"
                 icon="mdi-pencil"
                 size="small"
+                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
                 @click="addOrEditSupply(item)"
                 :disabled="loading">
             </v-icon>   
@@ -112,6 +114,7 @@
                 color="red"
                 icon="mdi-trash-can"
                 size="small"
+                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
                 @click="deleteSupply(item)"
                 :disabled="loading">
             </v-icon>  
@@ -124,6 +127,12 @@
                         <v-card-title>
                             {{itemName}} - Price History</v-card-title></v-row>                    
                     <v-card-text>
+                        <v-row justify="center">
+                            <v-card height="500" width="1200" class="d-flex justify-center align-center">
+                                <v-chart  class="chart" :option="option" autoresize />
+                            </v-card>
+                        </v-row>
+
                         <v-row justify="center">
                             <v-table>
                             <thead>
@@ -322,7 +331,7 @@
 </template>
 <script setup>
 import { useAppStore } from '@/store/app'
-import { ref, computed, watch, onBeforeMount } from 'vue';
+import { ref, computed, watch, onBeforeMount, provide } from 'vue';
 import StoreApi from '@/services/StoreApi';
 const search = ref(null);
 const loading = ref(false)
@@ -375,10 +384,9 @@ const allSupply = ref([])
 onBeforeMount(async () => {
     try{
         const res = await StoreApi.getSupply();
-        console.log(res.data)
         if(res.status === 200){
             allSupply.value = res.data;
-
+            //console.log(displayItems.value)
             sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
             produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
             otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
@@ -413,8 +421,18 @@ async function viewPriceHist(item){
         if(item){
             const res = await StoreApi.getPriceBySupplyID(item.raw.supply_id);
             if(res.status === 200){
-                console.log(res.data);
+                //console.log(res.data);
                 priceHistItem.value = res.data;
+                const xAxisData = priceHistItem.value.map(item => {
+                    const date = new Date(item.modified_date);
+                    const mm = (date.getMonth() + 1).toString().padStart(2, '0'); // Adding 1 because months are 0-indexed
+                    const dd = date.getDate().toString().padStart(2, '0');
+                    const yyyy = date.getFullYear();
+                    return `${mm}/${dd}/${yyyy}`;
+                });
+                const yAxisData = priceHistItem.value.map(item => item.price);
+                option.value.xAxis.data = xAxisData;
+                option.value.series[0].data = yAxisData;
             }
             itemName.value = item.raw.item_name;
             priceDialog.value = true;
@@ -470,6 +488,7 @@ async function submitAddOrEdit()
                 supplyItem.value.supply_id = res.data.Supply_id;
                 supplyItem.value.added_by = piniaStore.currentUserName;
                 supplyItem.value.date_added = getCurrentDateTimeString();
+                supplyItem.value.item_type_desc = itemType.value.find(item => item.item_type_id = supplyItem.value.item_type_id);
                 piniaStore.setSnackBar("Supply added successfully", true);
                 allSupply.value.push(supplyItem.value);
             }
@@ -488,13 +507,16 @@ async function submitAddOrEdit()
                 piniaStore.setSnackBar("Supply modified successfully", true);
             }
         }
-        addOrEditLoading.value = false;
+        
         closeAddOrEdit();
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
             else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
     }   
+    finally{
+        addOrEditLoading.value = false;
+    }
     }
     else{
         piniaStore.setSnackBar("Invalid field(s). Please check your input again !");
@@ -517,7 +539,7 @@ async function deleteSupply(item){
     if(item){
         delDialog.value = true;
         delSupply.value = Object.assign({}, item.raw);
-        console.log(delSupply.value);
+        //console.log(delSupply.value);
     }    
     else{
         piniaStore.setSnackBar("An error occurs, please contact IT for support!");
@@ -528,7 +550,6 @@ async function submitDel(){
         const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
         delLoading.value = true;
         //Send data to backend
-        console.log(delSupply.value.supply_id);
         const res = await StoreApi.delSupply(delSupply.value.supply_id, customHeaders);
         if(res.status === 200){
             const index = allSupply.value.findIndex(i => i.supply_id === delSupply.value.supply_id);
@@ -571,9 +592,9 @@ function exportCSV(){
             item.notes,
             item.vendor_name,
             item.added_by,            
-            item.date_added,
+            item.date_added ? item.date_added.replace(/,/g, '') : '',
             item.modified_by,
-            item.date_modified
+            item.date_modified ? item.date_modified.replace(/,/g, '') : ''
         ])
     ]
     .map(e => e.join(","))
@@ -582,9 +603,44 @@ function exportCSV(){
     const dateTimeNow = new Date().toISOString().slice(0,-1);
     download.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
     download.target = '_blank';
-    download.download = 'Account_on_' + dateTimeNow + '.csv';
+    download.download = 'Supply_' + dateTimeNow + '.csv';
     download.click();
 }
 
+//DRAW PRICE HISTORY CHART
+import { use } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { LineChart } from 'echarts/charts';
+import {
+GridComponent,
+TitleComponent,
+} from 'echarts/components';
+import VChart, { THEME_KEY } from 'vue-echarts';
+
+use([
+CanvasRenderer,
+LineChart,
+GridComponent,
+TitleComponent,
+]);
+provide(THEME_KEY, 'dark');
+
+const option = ref({
+  xAxis: {
+  data: []
+},
+yAxis: {},
+series: [
+  {
+    data: [],
+    type: 'line',
+    lineStyle: {
+        color: 'white',
+        width: 4,
+        type: 'line'
+    }
+  }
+]
+});
 
 </script>
