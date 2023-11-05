@@ -67,6 +67,8 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAppStore } from '@/store/app';
+const piniaStore = useAppStore();
 const router = useRouter();
 const views = ref([
   {title : 'Supply', icon : 'mdi-apps-box', desc : 'View and Manage Supply.', color : '#1E88E5', buttonLabel :'Get Started'},
@@ -83,8 +85,14 @@ async function switchViews(id){
           router.push({name : 'Vendor'});
           break;
       case 2:
-          router.push({name : 'Account'});
-          break;
+        if(piniaStore.currentRole === 'admin'){
+            router.push({name : 'Account'});
+            break;
+        }
+        else{
+            piniaStore.setSnackBar("You're not allowed to access this page!");
+            break;
+        }          
       case 3:
           router.push({name : 'Order'});
           break;
