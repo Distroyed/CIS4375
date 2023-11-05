@@ -556,9 +556,9 @@ function exportCSV(){
             item.phone,
             item.role,
             item.added_by,
-            item.date_added,
+            item.date_added ? item.date_added.replace(/,/g, '') : '',
             item.modified_by,
-            item.date_modified
+            item.date_modified ? item.date_modified.replace(/,/g, '') : ''
         ])
     ]
     .map(e => e.join(","))
@@ -567,7 +567,7 @@ function exportCSV(){
     const dateTimeNow = new Date().toISOString().slice(0,-1);
     download.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
     download.target = '_blank';
-    download.download = 'Account_on_' + dateTimeNow + '.csv';
+    download.download = 'Account_' + dateTimeNow + '.csv';
     download.click();
 }
 </script>
