@@ -356,10 +356,18 @@
                             variant="flat"
                             width="150"
                             color="green"
+                            @click.prevent="exportToXLSX()" 
+                            prepend-icon="mdi-microsoft-excel"
+                            >
+                            Export To XLSX</v-btn>
+                            <v-btn
+                            variant="flat"
+                            width="150"
+                            color="blue"
                             @click.prevent="exportToCSV()" 
                             prepend-icon="mdi-microsoft-excel"
                             >
-                            Export To CSV</v-btn>
+                            Export To CSV</v-btn>                            
                             <v-btn
                             variant="flat"
                             width="150"
@@ -377,12 +385,13 @@
     </div>
     </v-responsive>
 </v-row>
-<v-dialog v-model="loading" persistent width="20%">
+<v-dialog v-model="loading" persistent width="25%">
             <v-card class="align-center justify-center text-center my-5 mx-5">
+                <v-card-title>Report is generating...</v-card-title>
                 <v-progress-circular
                 class="my-8"
-                :size="120"
-                :width="7"
+                :size="150"
+                :width="8"
                 color="indigo"                
                 indeterminate                
                 ></v-progress-circular>
@@ -453,6 +462,7 @@ const reportSushi = ref([]);
 const reportProduce = ref([]);
 const reportOther = ref([]);
 const loading = ref(false);
+const groupIDName = ref(null);
 async function saveData(){
     const {valid} = await orderForm.value.validate();    
     if(valid){
@@ -462,17 +472,18 @@ async function saveData(){
         reportOther.value = calculateSupplyValues(updatedOtherItems.value);
         const finalReport = [...reportSushi.value, ...reportProduce.value, ...reportOther.value];
         const groupID = generateUniqueID();
+        groupIDName.value = groupID
         const finalReportWithID = finalReport.map(obj =>({
             ...obj,
             report_group: groupID
         }));
-        console.log(finalReportWithID)
         try{
             const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
             const res = await StoreApi.updateTransaction(finalReportWithID, customHeaders);
             if(res.status === 200){
                 piniaStore.setSnackBar("Report Created Successfully", true);
                 generateReport.value = true;
+                exportToXLSX();
             }            
         }
         catch(error){
@@ -511,4 +522,126 @@ async function Complete(){
     getData();
     tab.value = "one";
 }
+
+//Export To CSV file
+function exportToCSV(){
+    const tabs = [
+        {
+            tabName: 'Sushi',
+            data: reportSushi.value, 
+        },
+        {
+            tabName: 'Produce',
+            data: reportProduce.value, 
+        },
+        {
+            tabName: 'Other',
+            data: reportOther.value, 
+        },
+    ];
+
+    const csvString =[];
+    tabs.forEach(tab => {
+        csvString.push([tab.tabName]);
+
+        // Add headers
+        csvString.push([
+            'Item Name',
+            'Current Price',
+            'Quantity Order',
+            'Total Cost',
+            'Vendor Name',
+            'Ordering Channel',
+            'Contact Phone',
+            'Order Phone',
+            'Email'
+        ]);
+
+        // Add tab data
+        csvString.push(
+            ...tab.data.map(item => [
+                item.item_name,
+                item.price,
+                item.qty_ordered,
+                item.total_cost,
+                item.vendor_name,
+                item.ordering_channel,
+                item.contact_phone,
+                item.order_phone,
+                item.email
+            ])
+        );
+
+        // Separate tabs with an empty line
+        csvString.push([]);
+    });
+    const csvData = csvString
+        .map(section => section.join(','))
+        .join('\n');
+    // Create a Blob from the CSV data
+    const blob = new Blob([csvData], { type: 'text/csv' });
+
+    // Create a URL for the Blob
+    const blobUrl = URL.createObjectURL(blob);
+    // Create a download link for the user to save the file
+    const dateTimeNow = new Date().toISOString().slice(0,-1);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = blobUrl;
+    downloadLink.download = 'Report_' + dateTimeNow + '_' + groupIDName.value + '.csv';
+    downloadLink.style.display = 'none';
+    // Trigger a click event to prompt the user to save the file
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+
+    // Ensure the URL is revoked when no longer needed (optional)
+    URL.revokeObjectURL(blobUrl);
+} 
+
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+const exportToXLSX = () => {
+      const tabs = [
+        {
+          tabName: 'Sushi',
+          data: reportSushi.value,
+        },
+        {
+          tabName: 'Produce',
+          data: reportProduce.value,
+        },
+        {
+          tabName: 'Other',
+          data: reportOther.value,
+        },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+
+      tabs.forEach((tab) => {
+        const data = [
+          ['Item Name', 'Current Price', 'Quantity Order', 'Total Cost', 'Vendor Name', 'Ordering Channel', 'Contact Phone', 'Order Phone', 'Email'],
+          ...tab.data.map((item) => [
+            item.item_name,
+            item.price,
+            item.qty_ordered,
+            item.total_cost,
+            item.vendor_name,
+            item.ordering_channel,
+            item.contact_phone,
+            item.order_phone,
+            item.email,
+          ]),
+        ];
+
+        const worksheet = XLSX.utils.aoa_to_sheet(data);
+        XLSX.utils.book_append_sheet(workbook, worksheet, tab.tabName);
+      });
+      const dateTimeNow = new Date().toISOString().slice(0,-1);
+      const xlsxWriteBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const fileName = 'Report_' + dateTimeNow + '_' + groupIDName.value + '.xlsx';
+      const blob = new Blob([new Uint8Array(xlsxWriteBuffer)], { type: 'application/octet-stream' });
+      saveAs(blob, fileName);
+    };
+
 </script>
