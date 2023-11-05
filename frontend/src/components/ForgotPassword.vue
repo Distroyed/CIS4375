@@ -35,7 +35,7 @@
                         <v-row justify="center">
                         <v-btn color="indigo-darken-3" width="150" variant="flat"  :loading="loading" @click="submit" v-if="!resetPW">
                         Submit</v-btn>                           
-                        <v-btn  color="red-darken-3" width="150" variant="flat"  @click="back">
+                        <v-btn  color="red-darken-3" width="150" variant="flat"  @click="back" :disabled="loading">
                         Back</v-btn>
                     </v-row>
                     </v-card-actions>
@@ -69,16 +69,26 @@ async function submit(){
     const {valid} = await forgotPWForm.value.validate();
     if(valid)
     {
-        try{
-            console.log(email.value);
-            //errorEmail.value = true;
-            // const res = await StoreApi.forgotPassword(email.value)
-            resetPW.value = true;
+        try{            
+            const username = {username: email.value}
+            const res = await StoreApi.forgotPassword(username)
+            loading.value = true;
+            if(res.status === 200){
+                resetPW.value = true;
+                piniaStore.setSnackBar("Reset Password Successfully", true);
+            }
+            else if(res.status === 205){
+                errorEmail.value = true;
+                piniaStore.setSnackBar("Reset Password Failed");
+            }            
         }
         catch(error)
         {
             if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
             else piniaStore.setSnackBar("Error In Finding Account. Please Contact IT For Support");
+        }
+        finally{
+            loading.value = false;
         }
     }
 }
