@@ -42,30 +42,31 @@
                 <v-toolbar flat color="white">
                     <v-toolbar-title >Vendor Management</v-toolbar-title> 
                     <v-divider
-                            inset
-                            vertical
-                            class="mx-5"
+                        inset
+                        vertical
+                        class="mx-5"
                     ></v-divider>   
                     <v-btn
-                            variant="flat"
-                            color="green"
-                            prepend-icon="mdi-plus"
-                            size="small"
-                            @click="addOrEditVendor()"
-                            >
-                                Add Vendor
-                            </v-btn>
+                        variant="flat"
+                        color="green"
+                        prepend-icon="mdi-plus"
+                        size="small"
+                        v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                        @click="addOrEditVendor()"
+                        >
+                            Add Vendor
+                        </v-btn>
                     <v-spacer></v-spacer>
                     <v-spacer></v-spacer>
                     <v-btn
-                            variant="flat"
-                            color="indigo"
-                            prepend-icon="mdi-microsoft-excel"
-                            size="small"
-                            @click="exportCSV()"
-                            >
-                                Export Csv
-                            </v-btn>
+                        variant="flat"
+                        color="indigo"
+                        prepend-icon="mdi-microsoft-excel"
+                        size="small"
+                        @click="exportCSV()"
+                        >
+                            Export Csv
+                        </v-btn>
                     <v-col cols="3">
                     <v-text-field
                         prepend-icon="mdi-magnify"
@@ -85,6 +86,7 @@
                 color="green"
                 icon="mdi-pencil"
                 size="small"
+                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
                 @click="addOrEditVendor(item)"
                 :disabled="loading">
             </v-icon>
@@ -93,6 +95,7 @@
                 color="red"
                 icon="mdi-trash-can"
                 size="small"
+                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
                 @click="deleteVendor(item)"
                 :disabled="loading">
             </v-icon>  
@@ -315,6 +318,7 @@ onBeforeMount(async () => {
         const res = await StoreApi.getVendor();
         if(res.status === 200){
             displayItems.value = [...res.data];
+            //console.log(displayItems.value)
         }
         const resState = await StoreApi.getState();
         if(resState.status === 200){
@@ -468,7 +472,7 @@ async function deleteVendor(item){
     if(item){
         delDialog.value = true;
         delVendor.value = Object.assign({}, item.raw);
-        console.log(delVendor.value);
+        //console.log(delVendor.value);
     }    
     else{
         piniaStore.setSnackBar("An error occurs, please contact IT for support!");
@@ -506,7 +510,8 @@ function exportCSV(){
             'State',
             'Zip Code',
             'Contact Name',
-            'Phone Number',
+            'Contact Number',
+            'Order Number',
             'Email',
             'Order Channel',
             'Note'
@@ -519,6 +524,7 @@ function exportCSV(){
             item.zip,
             item.contact_name,
             item.contact_phone,
+            item.order_phone,
             item.email,
             item.ordering_channel,
             item.notes
@@ -530,7 +536,7 @@ function exportCSV(){
     const dateTimeNow = new Date().toISOString().slice(0,-1);
     download.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvString);
     download.target = '_blank';
-    download.download = 'Account_on_' + dateTimeNow + '.csv';
+    download.download = 'Vendor_' + dateTimeNow + '.csv';
     download.click();
 }
 </script>
