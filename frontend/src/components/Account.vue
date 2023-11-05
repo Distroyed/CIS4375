@@ -116,7 +116,9 @@
                                     v-model="accountItem.username"
                                     label="Email"
                                     color="primary"
+                                    type="email"
                                     :rules="emailRule"
+                                    placeholder="johndoe@gmail.com"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="4">
@@ -143,6 +145,7 @@
                                     label="Phone"
                                     color="primary"
                                     :rules="phoneRule"
+                                    type="tel"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                                 <v-col cols="6">
@@ -337,7 +340,6 @@ onBeforeMount(async () => {
         //console.log(res);
         if(res.status === 200){
             displayItems.value = [...res.data];
-            console.log(displayItems.value)
         }
     }
     catch(error){
@@ -442,7 +444,12 @@ async function submitAddOrEdit()
     if(valid && !passwordsDoNotMatch.value){
         try{
         addOrEditLoading.value = true;
-        if(isAdd.value === 1){        
+        const usernameDuplicated = displayItems.value.some((obj) => obj.username === accountItem.value.username);
+        if(usernameDuplicated){
+            piniaStore.setSnackBar("Username has been used, please use a different one!");
+        }
+        else{
+            if(isAdd.value === 1){        
             //Send Added Account Info To Backend
             const res =  await StoreApi.addAccount(accountItem.value, customHeaders );
             if(res.status === 200)
@@ -451,25 +458,25 @@ async function submitAddOrEdit()
                 accountItem.value.date_added = getCurrentDateTimeString();
                 piniaStore.setSnackBar("Account added successfully", true);
                 accountItem.value.account_id = res.data.account_id;
-                console.log(accountItem.value)
                 displayItems.value.push(accountItem.value);
             }            
-        }
-        else{
-            //Send Editted Account Info to Backend
-            accountItem.value.modified_by = piniaStore.currentUserName;
-            const res =  await StoreApi.editAccount(accountItem.value, customHeaders);
-            if(res.status === 200) {
-                accountItem.value.modified_by = piniaStore.currentUserName;
-                accountItem.value.date_modified = getCurrentDateTimeString();
-                const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
-                if (index !== -1) {
-                    displayItems.value[index] = accountItem.value;
-                }
-                piniaStore.setSnackBar("Account modified successfully", true);
             }
-        }        
-        closeAddOrEdit();
+            else{
+                //Send Editted Account Info to Backend
+                accountItem.value.modified_by = piniaStore.currentUserName;
+                const res =  await StoreApi.editAccount(accountItem.value, customHeaders);
+                if(res.status === 200) {
+                    accountItem.value.modified_by = piniaStore.currentUserName;
+                    accountItem.value.date_modified = getCurrentDateTimeString();
+                    const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
+                    if (index !== -1) {
+                        displayItems.value[index] = accountItem.value;
+                    }
+                    piniaStore.setSnackBar("Account modified successfully", true);
+                }
+            }        
+            closeAddOrEdit();
+        }            
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
