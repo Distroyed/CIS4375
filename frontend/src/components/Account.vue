@@ -175,7 +175,7 @@
                                     v-model="accountItem.sec_response"
                                     label="Security Answer"
                                     color="primary"
-                                    :rules="[ v => !!v || 'Security Question is required']"
+                                    :rules="[ v => !!v && v.length >= 3 || 'Answer must be at least 3 characters']"
                                     variant="underlined"></v-text-field>
                                 </v-col>
                             </v-row> 
@@ -187,7 +187,7 @@
                                         label="Password"
                                         type="password"
                                         color="primary"
-                                        :rules="[ v => !!v || 'Password is required']"
+                                        :rules="[ v => !!v && v.length >= 6 || 'Password must be at least 6 characters']"
                                         variant="underlined"></v-text-field>
                                     </v-col>
                                     <v-col cols="6">
@@ -221,7 +221,7 @@
                                         label="Password"
                                         type="password"
                                         color="primary"
-                                        :rules="[ v => !!v || 'Password is required']"
+                                        :rules="[ v => !!v && v.length >= 6 || 'Password must be at least 6 characters']"
                                         variant="underlined"></v-text-field>
                                     </v-col>
                                     <v-col cols="6">
