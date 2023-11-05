@@ -43,8 +43,7 @@
               :key="i"
               :value="item"
               color="primary"
-              @click="selectedMenuItem(item)"
-              
+              @click="selectedMenuItem(item)"           
             >
               <template v-slot:prepend>
                 <v-icon :icon="item.icon"></v-icon>
@@ -86,8 +85,14 @@ async function selectedMenuItem(item){
       router.push({name: 'Vendor'});
       break;
     case 'Account':
-      router.push({name: 'Account'});
-      break;
+      if(piniaStore.currentRole === 'admin'){
+        router.push({name: 'Account'});
+        break;
+      }
+      else{
+        piniaStore.setSnackBar("You are not allowed to access this!")
+        break;
+      }
     case 'Order':
       router.push({name: 'Order'});
       break;
