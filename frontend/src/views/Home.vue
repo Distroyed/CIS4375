@@ -3,25 +3,25 @@
       <v-responsive class="d-flex justify-center align-center text-center fill-height">
           <Transition name="fade" mode="out-in">
               <v-row class="pa-3 justify-center align-center d-flex">
-              <v-col cols="auto">
+              <!-- <v-col cols="auto">
                   <v-btn
                   variant="plain"
                   size="large"
                   icon="mdi-chevron-left"
                   @click="goNext()"
                   ></v-btn>
-              </v-col>
+              </v-col> -->
               <v-col cols="auto">
                   <component :is="selectedChartComponent"></component>
               </v-col>
-                  <v-col cols="auto">
+              <!-- <v-col cols="auto">
                   <v-btn
                   size="large"
                   variant="plain"
                   icon="mdi-chevron-right"
                   @click="goBack()"
                   ></v-btn>
-              </v-col>
+              </v-col> -->
               </v-row>
           </Transition>
       </v-responsive>
@@ -96,9 +96,6 @@ import { defineAsyncComponent } from 'vue'
 const componentMap = {
 PieMappedChart: defineAsyncComponent(() =>
   import('@/components/PieMappedChart.vue'),
-),
-LineChart: defineAsyncComponent(() =>
-  import('@/components/LineChart.vue'),
 )
 }
 const chartComponents = Object.keys(componentMap);
@@ -106,12 +103,6 @@ const selectedChartIndex= ref(0);
 const selectedChartComponent = computed(() => {
   return componentMap[chartComponents[selectedChartIndex.value]];
 });
-function goNext(){
-  selectedChartIndex.value = (selectedChartIndex.value + 1) % chartComponents.length;
-}
-function goBack(){
-  selectedChartIndex.value = (selectedChartIndex.value - 1 + chartComponents.length) % chartComponents.length;
-}
 </script>
 <style scoped>
 .card-tab {
