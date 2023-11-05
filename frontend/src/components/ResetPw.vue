@@ -117,7 +117,7 @@ onBeforeMount( async () =>{
     try{
         loading.value = true;
         //Send link ID to backend to verify
-        console.log(linkID);
+        //console.log(linkID);
         const res = await StoreApi.verifyLink(linkID);
         if(res.status === 200){
             accountData.value = res.data
@@ -147,7 +147,7 @@ async function submit(){
         try{
             loading.value = true;
             accountData.value.link_id = linkID;
-            console.log(accountData.value);
+            //console.log(accountData.value);
             
             const res = await StoreApi.resetPassword(accountData.value);
             if(res.status === 200){
