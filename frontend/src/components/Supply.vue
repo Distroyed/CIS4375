@@ -240,7 +240,7 @@
                                     clearable
                                     item-title="item_type_desc"
                                     item-value="item_type_id"
-                                    :rules="[ v => !!v || 'Price is required']"
+                                    :rules="[ v => !!v || 'Supply Type is required']"
                                     ></v-autocomplete>
                                 </v-col>
                                 <v-col cols="6">
@@ -255,7 +255,7 @@
                                     clearable
                                     item-title="vendor_name"
                                     item-value="vendor_id"
-                                    :rules="[ v => !!v || 'Price is required']"
+                                    :rules="[ v => !!v || 'Vendor is required']"
                                     ></v-autocomplete>
                                 </v-col>                                
                             </v-row>        
@@ -512,7 +512,7 @@ async function submitAddOrEdit()
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-            else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Add or Edit Supply. Please Contact IT For Support");
     }   
     finally{
         addOrEditLoading.value = false;
@@ -561,7 +561,7 @@ async function submitDel(){
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-            else piniaStore.setSnackBar("Error In Deleting Account. Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Deleting Supply. Please Contact IT For Support");
     }   
 }
 
