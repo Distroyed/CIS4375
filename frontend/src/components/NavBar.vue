@@ -90,7 +90,7 @@ async function selectedMenuItem(item){
         break;
       }
       else{
-        piniaStore.setSnackBar("You are not allowed to access this!")
+        piniaStore.setSnackBar("You are not allowed to access this page!")
         break;
       }
     case 'Order':
