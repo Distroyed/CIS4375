@@ -4,6 +4,7 @@ import flask
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from flask_mail import Mail, Message 
 from flask import Flask
 from flask import jsonify
 from flask import request
@@ -17,10 +18,11 @@ from sql import execute_query
 import creds
 import hashlib
 import datetime
-from datetime import datetime
+from datetime import datetime, timedelta
 #setting an application name
 app = flask.Flask(__name__) #sets up application
 CORS(app) #necessary for front end code to send properly
+mail = Mail(app)
 app.config["DEBUG"] = True #allows error messages
 app.secret_key = 'your_mother' #the key to the app
 
@@ -59,30 +61,31 @@ def timelimit_link(link_id):
     cursor = link_up.cursor(dictionary=True)
 
     # Check is_expired value in LINK based on link_id
-    cursor.execute("SELECT LINK.is_expired, ACCOUNT.account_id, ACCOUNT.username, LINK.date_added FROM LINK INNER JOIN ACCOUNT ON LINK.account_id = ACCOUNT.account_id WHERE LINK.link_id = %s", (link_id,))
+    cursor.execute("SELECT LINK.is_expired, ACCOUNT.account_id, ACCOUNT.username, LINK.date_added, ACCOUNT.sec_question FROM LINK INNER JOIN ACCOUNT ON LINK.account_id = ACCOUNT.account_id WHERE LINK.link_id = %s", (link_id,))
     link_data = cursor.fetchone()
 
     if link_data:
         is_expired = link_data['is_expired']
         date_added = link_data['date_added']
-        current_time = datetime.datetime.now()
+        sec_question = link_data['sec_question']
+        current_time = datetime.now()
 
         if is_expired == 1:
             # Link is expired
             return jsonify({'message': 'Link is expired'}), 400
 
         elif is_expired == 0:
-            if date_added is not None and current_time > (date_added + datetime.timedelta(days=1)):
+            if date_added is not None and current_time > (date_added + timedelta(days=1)):
                 # Link is expired, update is_expired to 1
                 cursor.execute("UPDATE LINK SET is_expired = 1 WHERE link_id = %s", (link_id,))
                 link_up.commit()
-                return jsonify({'message': 'Link is expired'}), 400
+                return jsonify({'message': 'Link is expired'}), 205
 
-            elif date_added is not None and current_time < (date_added + datetime.timedelta(days=1)):
+            elif date_added is not None and current_time < (date_added + timedelta(days=1)):
                 # Link is still valid
                 return jsonify({
                     'account_id': link_data['account_id'],
-                    'username': link_data['username']
+                    'sec_question' : sec_question
                 }), 200
             else:
                 # Handle the case where date_added
@@ -413,7 +416,7 @@ def edit_account():
     current_role = request.headers.get('role') # role is in the header
     current_user = request.headers.get('username')
     # Check if the current user has the 'Admin' or 'Edit' role
-    if current_role == 'admin':
+    if current_role == 'admin' or current_role == 'editor':
         try:
             data = request.get_json()
             account_id = data.get('account_id')
@@ -543,7 +546,23 @@ def login():
             return jsonify({'message': 'Incorrect password'}), 401
     else:
         return jsonify({'message': 'User not found'}), 404
-    
+
+#define your email configuration for the POST "/forgotpassword/answer"
+#needs to be replaced with clients email and need to make a custom app password for the client
+""" sender_email = "fakerv1811@gmail.com"
+sender_password = "Icui4cu2" #app password for account
+smtp_server = "smtp.gmail.com"
+smtp_port = 587  """
+
+# configuration of mail 
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = 'fakerv1811@gmail.com'
+app.config['MAIL_PASSWORD'] = 'akxc czlp lotz txll'
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app) 
+
 # Get security question for ACCOUNT table
 @app.route('/forgotpassword', methods=['POST'])
 def forgotpassword():
@@ -556,83 +575,71 @@ def forgotpassword():
     try:
         cursor = link_up.cursor(dictionary=True)
         #SQL query to retrieve the security question for the given username
-        cursor.execute("SELECT sec_question FROM ACCOUNT WHERE username = %s", (username,))
-        security_question = cursor.fetchone()
+        cursor.execute("SELECT account_id, fname, lname FROM ACCOUNT WHERE username = %s", (username,))
+        result = cursor.fetchone()
+        account_id = result['account_id']
+        fname = result['fname']
+        lname = result['lname']
 
-        if security_question:
-            return jsonify({'security_question': security_question['sec_question']})
+        if account_id:
+            # Insert a new row into the LINK table
+            cursor.execute("INSERT INTO LINK (account_id, is_expired, is_updated, date_added) VALUES (%s, 0, 0, NOW())", (account_id,))
+            link_id = cursor.lastrowid  # Get the ID of the newly added row
+
+            # Commit the transaction to save changes to the database
+            link_up.commit()
+
+            # Send an email to the user with the reset link
+            reset_link = f'http://localhost:3000/reset-password/{link_id}'
+
+            # The code for sending the email is similar to the code you provided in the first set.
+            # You can use that code to send the email here, just replace the reset link with the one you generated.
+            msg = Message( 
+                '7Friday Sushi - Reset Password', 
+                sender ='fakerv1811@gmail.com', 
+                recipients = [username] 
+               ) 
+            msg.body = f"Hello {fname} {lname},\n\nTo reset your password, click on the following link and follow instruction :\n{reset_link}"
+            mail.send(msg) 
+            return jsonify({'message': 'Password reset email sent'}), 200            
         else:
-            return jsonify({'message': 'Username not found'}), 404
+            return jsonify({'message': 'Username not found'}), 205
 
     except Exception as e:
         #if exception
-        return jsonify({'message': f'Failed to retrieve security question: {str(e)}'}), 500\
+        return jsonify({'message': f'Failed to send reset password email: {str(e)}'}), 500
 
-
-#define your email configuration for the POST "/forgotpassword/answer"
-#needs to be replaced with clients email and need to make a custom app password for the client
-sender_email = "rayalwayslives@gmail.com"
-sender_password = "euej sysr ogto irgn" #app password for account
-smtp_server = "smtp.gmail.com"
-smtp_port = 587
 
 # Check if the security password is correct for the user in the account table and if correct, add data into the LINK table
 @app.route('/forgotpassword/answer', methods=['POST'])
 def forgot_password_answer():
     data = request.get_json()
-    username = data.get('username')
     sec_response = data.get('sec_response')
+    account_id = data.get('account_id')
+
     cursor = link_up.cursor(dictionary=True)
 
     try:
         # SQL query to retrieve the security response for the given username
-        cursor.execute("SELECT sec_response FROM ACCOUNT WHERE username = %s", (username,))
+        cursor.execute("SELECT sec_response FROM ACCOUNT WHERE account_id = %s", (account_id,))
         security_response = cursor.fetchone()
 
         if security_response and sec_response == security_response['sec_response']:
-            # Continue if security answer matches
-
-            # Execute an SQL query to find the account_id that matches the provided username
-            cursor.execute("SELECT account_id FROM ACCOUNT WHERE username = %s", (username,))
-            account_id = cursor.fetchone()
-
-            if account_id:
-                # If a matching account_id is found
-                account_id = account_id['account_id']
-
-                # Insert a new row into the LINK table
-                cursor.execute("INSERT INTO LINK (account_id, is_expired, is_updated) VALUES (%s, 0, 0)", (account_id,))
-                link_id = cursor.lastrowid  # Get the ID of the newly added row
-
-                # Commit the transaction to save changes to the database
-                link_up.commit()
-
-                # Send an email to the user with the reset link
-                reset_link = f"https://abc?id={link_id}"
-
-                # The code for sending the email is similar to the code you provided in the first set.
-                # You can use that code to send the email here, just replace the reset link with the one you generated.
-                msg = MIMEMultipart()
-                msg['From'] = sender_email
-                msg['To'] = username
-                msg['Subject'] = "Password Reset"
-                message_body = f"Hello,\n\nTo reset your password, click the following link:\n{reset_link}"
-                msg.attach(MIMEText(message_body, 'plain'))
-
-                server = smtplib.SMTP(smtp_server, smtp_port)
-                server.starttls()
-                server.login(sender_email, sender_password)
-                server.sendmail(sender_email, username, msg.as_string())
-                server.quit()
-
-                return jsonify({'message': 'Password reset email sent', 'reset_link': reset_link}), 200
-            else:
-                # If the username is not found in the ACCOUNT table
-                return jsonify({'message': 'Unauthorized'}), 400
-
+            update_query1 = "UPDATE ACCOUNT SET password=%s WHERE account_id = %s"
+            cursor.execute(update_query1, (
+                hashlib.sha256(data.get('password').encode()).hexdigest(),
+                data.get('account_id')
+            ))
+            link_up.commit()
+            update_query2 = "UPDATE LINK SET is_expired = 1, is_updated = 1, date_modified = NOW() WHERE link_id = %s"
+            cursor.execute(update_query2, (
+                data.get('link_id')
+            ))
+            link_up.commit()        
+            return jsonify({'message': 'Password Updated Successfully'}), 200
         else:
             # If the security response does not match
-            return jsonify({'message': 'Unauthorized'}), 401
+            return jsonify({'message': 'Wrong Response'}), 205
 
     except Exception as e:
         # Handle exceptions
