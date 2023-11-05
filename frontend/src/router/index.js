@@ -39,6 +39,12 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/report-history',
+    name: 'ReportHistory',
+    component: () => import('@/components/ReportHistory.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/reset-password/:id',
     name: 'ResetPassword',
     component: () => import('@/views/ResetPassword.vue'),
