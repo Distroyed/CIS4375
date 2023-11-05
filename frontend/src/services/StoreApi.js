@@ -5,6 +5,10 @@ export default {
     getWindowsUsername(){
         return Api().get('user');
     },
+    //Get Pie Chart Data
+    getPieChartData(){
+        return Api().get(`pie-chart`);
+    },
     //Login
     login(object){
         return Api().post('login', object);
@@ -28,6 +32,10 @@ export default {
     getPriceBySupplyID(supplyID){
         return Api().get(`price/${supplyID}`)
     },
+    //Get Report History
+    getReportHistory(){
+        return Api().get(`report-history`);
+    },
     //SUPPLY
     //Get Supply
     getSupply(){
@@ -50,10 +58,10 @@ export default {
         });
     },
     //Delete Supply
-    delSupply(supplyID, customHeader){
-        return Api().delete(`supply/delete/${supplyID}`, {
-            headers: customHeader
-        });
+    delSupply(supplyItem, customHeader){
+    return Api().put(`supply/delete`, supplyItem, {
+        headers: customHeader 
+    });
     },
     //VENDOR
     //Get Vendors
@@ -73,8 +81,8 @@ export default {
         });
     },
     //Delete Vendor
-    delVendor(vendorID, customHeader){
-        return Api().delete(`vendor/delete/${vendorID}`, {
+    delVendor(VendorItem, customHeader){
+        return Api().put(`vendor/delete`,VendorItem, {
             headers: customHeader
         });
     },
@@ -96,8 +104,8 @@ export default {
         });
     },
     //Delete Vendor
-    delAccount(acctID, customHeader){
-        return Api().delete(`account/delete/${acctID}`, {
+    delAccount(accountItem, customHeader){
+        return Api().put(`account/delete`,accountItem, {
             headers: customHeader
         });
     },
