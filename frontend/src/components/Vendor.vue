@@ -174,7 +174,7 @@
                                 </v-col>
                             </v-row>                    
                             <v-row class="mx-6">
-                                <v-col cols="4">
+                                <v-col cols="3">
                                     <v-autocomplete
                                     v-model="vendorItem.ordering_channel"
                                     label="Ordering Chanel"
@@ -184,22 +184,34 @@
                                     :rules="[ v => !!v || 'Order Channel is required']"
                                     variant="underlined"></v-autocomplete>
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col cols="3">
                                     <v-text-field                                    
                                     v-model="vendorItem.email"
                                     label="Email"
                                     color="primary"
+                                    type="email"
                                     :rules="emailRule"
+                                    placeholder="johndoe@gmail.com"
                                     variant="underlined"></v-text-field>
                                 </v-col>
-                                <v-col cols="4">
+                                <v-col cols="3">
                                     <v-text-field                                    
-                                    v-model="vendorItem.phone"
-                                    label="Phone"
+                                    v-model="vendorItem.contact_phone"
+                                    label="Contact Phone"
                                     color="primary"
                                     :rules="phoneRule"
+                                    type="tel"
                                     variant="underlined"></v-text-field>
-                                </v-col>                                
+                                </v-col>    
+                                <v-col cols="3">
+                                    <v-text-field                                    
+                                    v-model="vendorItem.order_phone"
+                                    label="Order Phone"
+                                    color="primary"
+                                    :rules="phoneRule"
+                                    type="tel"
+                                    variant="underlined"></v-text-field>
+                                </v-col>                             
                             </v-row>       
                         </v-form>
                             <v-row justify="center" class="mt-8">
@@ -287,9 +299,10 @@ const headers = ref([
     { title: 'Address', align: 'left', key: 'address'  },
     { title: 'City', align: 'left', key: 'city'  },
     { title: 'State', align: 'left', key: 'state_abbr'},
-    { title: 'Zip Code', align: 'left', key: 'zip' },
+    { title: 'Zip Code', align: 'left', key: 'ZIP' },
     { title: 'Contact Name', align: 'left', key: 'contact_name' },    
-    { title: 'Phone Number', align: 'left', key: 'contact_phone' }, 
+    { title: 'Contact Number', align: 'left', key: 'contact_phone' }, 
+    { title: 'Order Number', align: 'left', key: 'order_phone' }, 
     { title: 'Email', align: 'left', key: 'email' }, 
     { title: 'Order Channel', align: 'left', key: 'ordering_channel' }, 
     { title: 'Note', align: 'left', key: 'notes' }, 
@@ -302,12 +315,10 @@ onBeforeMount(async () => {
         const res = await StoreApi.getVendor();
         if(res.status === 200){
             displayItems.value = [...res.data];
-            console.log(displayItems.value);
         }
         const resState = await StoreApi.getState();
         if(resState.status === 200){
             stateList.value = [...resState.data];
-            console.log(stateList.value);
         }
     }
     catch(error){
@@ -370,41 +381,70 @@ async function addOrEditVendor(item){
     addOrEditDialog.value = true;
 }
 
+function getCurrentDateTimeString() {
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  const now = new Date();
+
+  const dayOfWeek = days[now.getUTCDay()];
+  const dayOfMonth = now.getUTCDate().toString().padStart(2, '0');
+  const month = months[now.getUTCMonth()];
+  const year = now.getUTCFullYear();
+  const hours = now.getUTCHours().toString().padStart(2, '0');
+  const minutes = now.getUTCMinutes().toString().padStart(2, '0');
+  const seconds = now.getUTCSeconds().toString().padStart(2, '0');
+
+  return `${dayOfWeek}, ${dayOfMonth} ${month} ${year} ${hours}:${minutes}:${seconds} GMT`;
+}
+
 //Submit Add or Edit Account to Backend
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
+    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
     if(valid){
         try{
         addOrEditLoading.value = true;
+        // Find the state in the list based on state_id
+        const matchingState = stateList.value.find(state => state.state_id === vendorItem.value.state_id);
+        vendorItem.value.state_abbr = matchingState.state_abbr
         if(isAdd.value === 1){
             //Send Added Vendor Info To Backend
-            vendorItem.value.added_by = piniaStore.currentUserName;
-            console.log(vendorItem.value);
-            const res =  await StoreApi.addVendor(vendorItem.value);
+            const res =  await StoreApi.addVendor(vendorItem.value, customHeaders);
             if(res.status === 200)
-            {
-                piniaStore.setSnackBar("Account added successfully");
+            {                
+                vendorItem.value.added_by = piniaStore.currentUserName;
+                vendorItem.value.date_added = getCurrentDateTimeString();
+                piniaStore.setSnackBar("Vendor added successfully", true);
+                vendorItem.value.vendor_id = res.data.Vendor_id;
                 displayItems.value.push(vendorItem.value);
             }
         }
         else{
             //Send Editted Vendor Info to Backend
-            vendorItem.value.modified_by = piniaStore.currentUserName;
-            const res =  await StoreApi.editAccount(vendorItem.value);
+            const res =  await StoreApi.editVendor(vendorItem.value, customHeaders);
             if(res.status === 200) {
                 const index = displayItems.value.findIndex(obj => obj.vendor_id === vendorItem.value.vendor_id);
                 if (index !== -1) {
                     displayItems.value[index] = vendorItem.value;
                 }
+                piniaStore.setSnackBar("Vendor modified successfully", true);
             }
         }
-        addOrEditLoading.value = false;
+        
         closeAddOrEdit();
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
             else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
+    }
+    finally{
+        addOrEditLoading.value = false;
     }   
     }
     else{
@@ -437,12 +477,13 @@ async function deleteVendor(item){
 async function submitDel(){
     try{
         delLoading.value = true;
+        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
         //Send data to backend
-        const res = await StoreApi.delVendor(delVendor.value.vendor_id);
+        const res = await StoreApi.delVendor(delVendor.value.vendor_id, customHeaders);
         if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.vendor_id === delVendor.value.vendorItem);
             displayItems.value.splice(index, 1);
-            piniaStore.setSnackBar("Vendor deleted successfully");
+            piniaStore.setSnackBar("Vendor deleted successfully", true);
         }            
         delLoading.value = false;
         delDialog.value = false;
