@@ -65,7 +65,7 @@
                         label="Password"
                         type="password"
                         color="primary"
-                        :rules="[ v => !!v || 'Password is required']"
+                        :rules="[ v => !!v && v.length >= 6 || 'Password must be at least 6 characters']"
                         variant="underlined"></v-text-field>
                 </v-row>    
                 <v-row>
