@@ -48,8 +48,8 @@ def rolecheck():
             return jsonify({'message': 'Admin auth'}), 200
         elif current_role == 'user':
             return jsonify({'message': 'User auth'}), 200
-        elif current_role == 'editor':
-            return jsonify({'message': 'Editor auth'}), 200
+        elif current_role == 'edit':
+            return jsonify({'message': 'Edit auth'}), 200
         else:
             return jsonify({'message': 'Role not recognized'}), 403
     else:
@@ -61,7 +61,7 @@ def timelimit_link(link_id):
     cursor = link_up.cursor(dictionary=True)
 
     # Check is_expired value in LINK based on link_id
-    cursor.execute("SELECT LINK.is_expired, ACCOUNT.account_id, ACCOUNT.username, LINK.date_added, ACCOUNT.sec_question FROM LINK INNER JOIN ACCOUNT ON LINK.account_id = ACCOUNT.account_id WHERE LINK.link_id = %s", (link_id,))
+    cursor.execute("SELECT LINK.is_expired, ACCOUNT.account_id, ACCOUNT.username, LINK.date_added, ACCOUNT.sec_question FROM LINK INNER JOIN ACCOUNT ON LINK.account_id = ACCOUNT.account_id WHERE ACCOUNT.is_available = 1 AND LINK.link_id = %s", (link_id,))
     link_data = cursor.fetchone()
 
     if link_data:
@@ -99,10 +99,8 @@ def timelimit_link(link_id):
 def getAccountAll () :
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM ACCOUNT")
+        cursor.execute("SELECT * FROM ACCOUNT WHERE is_available = 1")
         users = cursor.fetchall()
-
-
         user_list = []
         for user in users:
             user_info = {
@@ -176,7 +174,7 @@ def getAllItemType():
 def get_vendors():
     try:
         cursor = link_up.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM VENDOR V JOIN STATE S ON S.state_id = V.state_id ")
+        cursor.execute("SELECT * FROM VENDOR V JOIN STATE S ON S.state_id = V.state_id WHERE V.is_available = 1 ")
         vendors = cursor.fetchall()
 
         vendor_list = []
@@ -217,7 +215,8 @@ def get_supplies():
                        "s.notes, s.date_added, s.added_by, s.date_modified, s.modified_by "
                        "FROM SUPPLY s "
                        "INNER JOIN ITEM_TYPE it ON s.item_type_id = it.item_type_id "
-                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id")
+                       "INNER JOIN VENDOR v ON s.vendor_id = v.vendor_id "
+                       "WHERE s.is_available = 1 AND v.is_available = 1")
         supplies = cursor.fetchall()
 
         supply_list = []
@@ -274,6 +273,50 @@ def get_prices(supply_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+#Get report history
+@app.route('/report-history', methods=['GET'])
+def get_grouped_data():
+    try:
+        cursor = link_up.cursor(dictionary=True)
+        query = "SELECT T.modified_by, T.change_qty, T.modified_date, T.qty_ordered, T.report_group, S.item_name, S.price, V.vendor_name, V.contact_name, V.contact_phone, V.order_phone, V.ordering_channel, V.email FROM TRANSACTION T JOIN SUPPLY S ON T.supply_id = S.supply_id JOIN VENDOR V on V.vendor_id = S.vendor_id WHERE S.is_available = 1 AND V.is_available = 1"
+        cursor.execute(query)
+        data = cursor.fetchall()
+
+        grouped_data = {}
+        for row in data:
+            report_group = row['report_group']
+            if report_group not in grouped_data:
+                grouped_data[report_group] = []
+            grouped_data[report_group].append(row)
+
+        result = [{'report_group': key, 'data': value} for key, value in grouped_data.items()]
+
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
+# API to get price info by supply_id
+@app.route('/pie-chart', methods=['GET'])
+def get_chart_data():
+    try:
+        cursor = link_up.cursor(dictionary=True)
+        query = "SELECT V.vendor_id, V.vendor_name, COUNT(*) AS supply_count FROM SUPPLY S JOIN VENDOR V ON S.vendor_id = V.vendor_id WHERE V.is_available = 1 AND S.is_available = 1 GROUP BY vendor_id;"
+        cursor.execute(query)
+        data = cursor.fetchall()
+
+        chart_data = []
+        for each in data:
+            chart_data_info = {
+                "name": each["vendor_name"],
+                "value": each["supply_count"]
+            }
+            chart_data.append(chart_data_info)
+        
+        return jsonify(chart_data)
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 ################################################################################################################################## PUT APIS ##################################################################################################################################################
 # Update password and set is_updated and is_expired in LINK
 @app.route('/reset-password/update', methods=['PUT'])
@@ -307,7 +350,7 @@ def edit_vendor():
     current_role = request.headers.get('role') # role is in the header
     current_user = request.headers.get('username')
     # Check if the current user has the 'Admin' or 'Edit' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin' or current_role == 'edit':
         try:
             data = request.get_json()
             vendor_id = data.get('vendor_id')
@@ -318,7 +361,7 @@ def edit_vendor():
             # SQL query to update the vendor in the 'VENDOR' table
             update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_id = %s, ZIP = %s, " \
                         "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
-                        "notes = %s, modified_by = %s  WHERE vendor_id = %s"
+                        "notes = %s, modified_by = %s  WHERE vendor_id = %s AND is_available = 1 "
 
             # Execute the SQL query with the provided data
             cursor.execute(update_query, (
@@ -361,17 +404,17 @@ def edit_supply():
         return jsonify({'message': 'supply_id is required'}), 400
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if current_role not in ('admin', 'editor'):
+    if current_role not in ('admin', 'edit'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     # Check if the current user has the 'Admin' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin' or current_role == 'edit':
         try:       
             # SQL query to update the supply in the 'SUPPLY' table
             update_query = "UPDATE SUPPLY SET item_name = %s, item_type_id = %s, " \
                            "vendor_id = %s, reorder_point = %s, " \
                            "modified_by = %s, price = %s, notes = %s, date_modified = NOW() " \
-                           "WHERE supply_id = %s"
+                           "WHERE supply_id = %s AND is_available = 1 "
 
             # Execute the SQL query with the provided data
             cursor.execute(update_query, (
@@ -416,7 +459,7 @@ def edit_account():
     current_role = request.headers.get('role') # role is in the header
     current_user = request.headers.get('username')
     # Check if the current user has the 'Admin' or 'Edit' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin' or current_role == 'edit':
         try:
             data = request.get_json()
             account_id = data.get('account_id')
@@ -427,7 +470,7 @@ def edit_account():
             # SQL query to update the vendor in the 'VENDOR' table
             update_query = "UPDATE ACCOUNT SET username = %s, password = %s, fname = %s, lname = %s, phone = %s, " \
                         "role = %s, sec_question = %s, sec_response = %s, " \
-                        "date_modified = NOW() , modified_by = %s  WHERE account_id = %s"
+                        "date_modified = NOW() , modified_by = %s  WHERE account_id = %s AND is_available = 1 "
 
             # Execute the SQL query with the provided data
             cursor.execute(update_query, (
@@ -465,11 +508,11 @@ def order():
         return jsonify({'message': 'No orders provided'}), 400
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if current_role not in ('admin', 'editor'):
+    if current_role not in ('admin', 'edit'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     # Check if the current user has the 'Admin' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin' or current_role == 'edit':
         try:
             for order in orders:
                 supply_id = order.get('supply_id')     
@@ -480,7 +523,7 @@ def order():
 
                 # SQL query to update the SUPPLY table
                 update_query = "UPDATE SUPPLY SET quantity = %s, reorder_point = %s, modified_by = %s, date_modified = NOW() " \
-                               "WHERE supply_id = %s"
+                               "WHERE supply_id = %s AND is_available = 1"
 
                 # Execute the SQL query with the provided data
                 cursor.execute(update_query, (
@@ -547,18 +590,11 @@ def login():
     else:
         return jsonify({'message': 'User not found'}), 404
 
-#define your email configuration for the POST "/forgotpassword/answer"
-#needs to be replaced with clients email and need to make a custom app password for the client
-""" sender_email = "fakerv1811@gmail.com"
-sender_password = "Icui4cu2" #app password for account
-smtp_server = "smtp.gmail.com"
-smtp_port = 587  """
-
 # configuration of mail 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = 'fakerv1811@gmail.com'
-app.config['MAIL_PASSWORD'] = 'akxc czlp lotz txll'
+app.config['MAIL_USERNAME'] = '7fridaysushi@gmail.com' #sponsor email
+app.config['MAIL_PASSWORD'] = 'yxzr jxig gzmv whqk' #sponsor password
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 mail = Mail(app) 
@@ -589,17 +625,17 @@ def forgotpassword():
             # Commit the transaction to save changes to the database
             link_up.commit()
 
-            # Send an email to the user with the reset link
-            reset_link = f'http://localhost:3000/reset-password/{link_id}'
+            # Send an email to the user with the reset link http://localhost:3000/reset-password/{link_id}
+            reset_link = f'http://7fridaysushi-inventory-frontend.s3-website.us-east-2.amazonaws.com/reset-password/{link_id}' 
 
             # The code for sending the email is similar to the code you provided in the first set.
             # You can use that code to send the email here, just replace the reset link with the one you generated.
             msg = Message( 
                 '7Friday Sushi - Reset Password', 
-                sender ='fakerv1811@gmail.com', 
+                sender ='7fridaysushi@gmail.com',  #should be the sponsor email address
                 recipients = [username] 
                ) 
-            msg.body = f"Hello {fname} {lname},\n\nTo reset your password, click on the following link and follow instruction :\n{reset_link}"
+            msg.body = f"Hello {fname} {lname},\n\nTo reset your password, click on the following link and follow instruction :\n{reset_link} \nThis link will be expired in 1 day. \n\nNotice: If you did not request to reset your password, please ignore this email and report to your admin!"
             mail.send(msg) 
             return jsonify({'message': 'Password reset email sent'}), 200            
         else:
@@ -621,19 +657,22 @@ def forgot_password_answer():
 
     try:
         # SQL query to retrieve the security response for the given username
-        cursor.execute("SELECT sec_response FROM ACCOUNT WHERE account_id = %s", (account_id,))
-        security_response = cursor.fetchone()
+        cursor.execute("SELECT username, sec_response FROM ACCOUNT WHERE account_id = %s", (account_id,))
+        result  = cursor.fetchone()
+        username = result['username']
+        security_response_db = result['sec_response']
 
-        if security_response and sec_response == security_response['sec_response']:
-            update_query1 = "UPDATE ACCOUNT SET password=%s WHERE account_id = %s"
+        if security_response_db and sec_response == security_response_db:
+            update_query1 = "UPDATE ACCOUNT SET password=%s, date_modified = NOW(), modified_by = %s WHERE account_id = %s"
             cursor.execute(update_query1, (
                 hashlib.sha256(data.get('password').encode()).hexdigest(),
+                username,
                 data.get('account_id')
             ))
             link_up.commit()
             update_query2 = "UPDATE LINK SET is_expired = 1, is_updated = 1, date_modified = NOW() WHERE link_id = %s"
             cursor.execute(update_query2, (
-                data.get('link_id')
+                data.get('link_id'),
             ))
             link_up.commit()        
             return jsonify({'message': 'Password Updated Successfully'}), 200
@@ -719,12 +758,12 @@ def add_vendor():
 
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if current_role not in ('admin', 'editor'):
+    if current_role not in ('admin', 'edit'):
         return jsonify({'message': 'User not authenticated'}), 401
 
     
     # Check if the current user has the 'Admin' or 'Edit' role
-    if current_role == 'admin' or current_role == 'editor':
+    if current_role == 'admin' or current_role == 'edit':
         try:
             # SQL query to insert the vendor into the 'VENDOR' table
             insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_id, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
@@ -764,7 +803,7 @@ def add_supply():
         return jsonify({'message': 'All fields are required'}), 400
 
     # If the current user is not authenticated, return a 401 Unauthorized response
-    if current_role not in ('admin', 'editor'):
+    if current_role not in ('admin', 'edit'):
         return jsonify({'message': 'User not authenticated'}), 401
     
     try:
@@ -799,75 +838,103 @@ def add_supply():
 ################################################################################################################################## Delete APIS ##################################################################################################################################################
     
 # Account Delete
-@app.route('/account/delete/<int:account_id>', methods=['DELETE'])
-def delete_account(account_id):
+@app.route('/account/delete', methods=['PUT'])
+def delete_account():
     current_role = request.headers.get('role') # role is in the header
-
+    current_user = request.headers.get('username')
+    print(current_role)
     # Check if the current user is logged in and has an "Admin" role
     if current_role == 'admin':
         try:
             # query to delete account from the 'ACCOUNT' table based on account_id
-            delete_query = "DELETE FROM ACCOUNT WHERE account_id = %s"
-            cursor.execute(delete_query, (account_id,))
-            link_up.commit()
+            # delete_query = "DELETE FROM ACCOUNT WHERE account_id = %s"
+            #cursor.execute(delete_query, (account_id,))
+            #link_up.commit() """
 
             # Check if any rows were affected by the delete operation
-            if cursor.rowcount > 0:
-                return jsonify({'message': 'User account deleted successfully'}), 200
-            else:
-                return jsonify({'message': 'User account not found'}) , 400
+            # if cursor.rowcount > 0:
+            #    return jsonify({'message': 'User account deleted successfully'}), 200
+            #else:
+            #    return jsonify({'message': 'User account not found'}) , 400 """
+            account_id = int(request.data)
+            if not account_id:
+                return jsonify({'message': 'account_id is required'}), 400
+            #Soft Delete
+            soft_delete = "UPDATE ACCOUNT SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE account_id = %s"
+            cursor.execute(soft_delete, (current_user, account_id))
+            return jsonify({'message': 'User account deleted successfully'}), 200
+        
         except Exception as e:
             return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin to delete a user account.'}), 400
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin to delete a user account.'}), 450
     
 # Vendor Delete     
-@app.route('/vendor/delete/<int:vendor_id>', methods=['DELETE'])
-def delete_vendor(vendor_id):
+@app.route('/vendor/delete', methods=['PUT'])
+def delete_vendor():
     # Check if the current user role
     current_role = request.headers.get('role') # role is in the header
-    if current_role == 'admin' or current_role == 'editor':
+    current_user = request.headers.get('username')
+    if current_role == 'admin' or current_role == 'edit':
         try:
             # query to delete vendor from the 'VENDOR' table based on vendor_id
-            delete_query = "DELETE FROM VENDOR WHERE vendor_id = %s"
-            cursor.execute(delete_query, (vendor_id,))
-            link_up.commit()
+            # delete_query = "DELETE FROM VENDOR WHERE vendor_id = %s"
+            #cursor.execute(delete_query, (vendor_id,))
+            #link_up.commit() """
 
             # Check if any rows were affected 
-            if cursor.rowcount > 0:
-                return jsonify({'message': 'Vendor deleted successfully'}), 200
-            else:
-                return jsonify({'message': 'Vendor not found'}), 400
+            #if cursor.rowcount > 0:
+            #    return jsonify({'message': 'Vendor deleted successfully'}), 200
+            #else:
+            #    return jsonify({'message': 'Vendor not found'}), 400 """
+            vendor_id = int(request.data)
+            if not vendor_id:
+                return jsonify({'message': 'Vendor_id is required'}), 400
+            #Soft Delete
+            soft_delete = "UPDATE VENDOR SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE vendor_id = %s"
+            cursor.execute(soft_delete, (current_user, vendor_id))
+            return jsonify({'message': 'Vendor profile deleted successfully'}), 200
+        
         except Exception as e:
             return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a vendor.'}), 400
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or edit to delete a vendor.'}), 450
     
 # Supply Delete     
-@app.route('/supply/delete/<int:supply_id>', methods=['DELETE'])
-def delete_supply(supply_id):
+@app.route('/supply/delete', methods=['PUT'])
+def delete_supply():
     current_role = request.headers.get('role') # role is in the header
-    if current_role == 'admin' or current_role == 'editor':
+    current_user = request.headers.get('username')
+    print(current_role)
+    if current_role == 'admin' or current_role == 'edit':
         try:
             # query to delete price from the 'PRICE' table based on supply_id
-            delete_query = "DELETE FROM PRICE WHERE supply_id = %s"
-            cursor.execute(delete_query, (supply_id,))
-            link_up.commit()
+            # delete_query = "DELETE FROM PRICE WHERE supply_id = %s"
+            #cursor.execute(delete_query, (supply_id,))
+            #link_up.commit() """
 
             # query to delete supply from the 'SUPPLY' table based on supply_id
-            delete_query = "DELETE FROM SUPPLY WHERE supply_id = %s"
-            cursor.execute(delete_query, (supply_id,))
-            link_up.commit()
+            # delete_query = "DELETE FROM SUPPLY WHERE supply_id = %s"
+            #cursor.execute(delete_query, (supply_id,))
+            #link_up.commit() """
 
             # Check if any rows were affected 
-            if cursor.rowcount > 0:
-                return jsonify({'message': 'Vendor deleted successfully'}), 200
-            else:
-                return jsonify({'message': 'Vendor not found'}), 400
+            # if cursor.rowcount > 0:
+            #    return jsonify({'message': 'Vendor deleted successfully'}), 200
+            #else:
+            #   return jsonify({'message': 'Vendor not found'}), 400 """
+            supply_id = int(request.data)
+            if not supply_id:
+                return jsonify({'message': 'supply_id is required'}), 400
+            #Soft Delete
+            soft_delete = "UPDATE SUPPLY SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE supply_id = %s"
+            cursor.execute(soft_delete, (current_user, supply_id))
+            return jsonify({'message': 'Supply profile deleted successfully'}), 200
+        
         except Exception as e:
             return jsonify({'message': f'Error on the backend: {str(e)}'}), 400
     else:
-        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or editor to delete a supply.'}), 400
+        return jsonify({'message': 'Unauthorized. You must be logged in as an admin or edit to delete a supply.'}), 450
 
 if __name__ == '__main__':
     app.run(port=5050)
