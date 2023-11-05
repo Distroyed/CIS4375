@@ -49,11 +49,11 @@
             </v-row>
             <v-form ref="resetPwForm">
                 <v-row>
-                    <p><span style="font-weight: bold;">Security Question: </span>{{ securityQuestion }}</p>
+                    <p><span style="font-weight: bold;">Security Question: </span>{{ accountData.sec_question }}</p>
                 </v-row>
                 <v-row>                    
                     <v-text-field
-                        v-model="answer"
+                        v-model="accountData.sec_response"
                         label="Security question answer"
                         color="primary"
                         :rules="[ v => !!v || 'Answer is required']"
@@ -61,7 +61,7 @@
                 </v-row>
                 <v-row>
                     <v-text-field
-                        v-model="password"
+                        v-model="accountData.password"
                         label="Password"
                         type="password"
                         color="primary"
@@ -105,46 +105,59 @@ const route = useRoute();
 const linkID = route.params.id;
 const badID = ref(false);
 const piniaStore = useAppStore();
-const password = ref(null);
 const confirmPassword = ref(null)
 const submitLoading =ref(false);
 const resetPwForm = ref(null);
-const passwordsDoNotMatch = computed(() => password.value !== confirmPassword.value)
+const passwordsDoNotMatch = computed(() => accountData.value.password !== confirmPassword.value)
 
 //Verify the reset password id
 const loading = ref(false);
-const securityQuestion = ref('Security Question???')
+const accountData = ref({});
 onBeforeMount( async () =>{
     try{
+        loading.value = true;
         //Send link ID to backend to verify
         console.log(linkID);
-        //if bad link id
-        //badID.value = false;
-        //else{ badID.value = true; securityQuestion = }
+        const res = await StoreApi.verifyLink(linkID);
+        if(res.status === 200){
+            accountData.value = res.data
+            badID.value = false;
+        }
+        else if(res.status === 205){
+            badID.value = true;
+            piniaStore.setSnackBar("Link Is Expired!")
+        }
     }
     catch(error)
     {
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-        else piniaStore.setSnackBar("Error In Loading Page. Please Contact IT For Support");
+        else piniaStore.setSnackBar("Error In Loading Page. Please Contact IT For Support");        
+    }
+    finally{
+        loading.value = false;
     }
 });
 
 //Submit Reset Password Request
 const resetPassword = ref(-1);
-const answer =ref(null);
 async function submit(){
     const {valid} = await resetPwForm.value.validate();
     if(valid && !passwordsDoNotMatch.value)
     {
         try{
             loading.value = true;
-            console.log("Password:", password.value);
-            console.log("Answer", answer.value);
-            // send security question and new password to backend to verify
-            //if correct: reset password
-            resetPassword.value = 1;
-            //else
-            //resetSuccess.value = 0;
+            accountData.value.link_id = linkID;
+            console.log(accountData.value);
+            
+            const res = await StoreApi.resetPassword(accountData.value);
+            if(res.status === 200){
+                piniaStore.setSnackBar("Password Updated Successfully", true);
+                resetPassword.value = 1;
+            }
+            else if(res.status === 205){
+                resetPassword.value = 0;
+                piniaStore.setSnackBar("Wrong Answer");
+            }            
         }
         catch(error)
         {
