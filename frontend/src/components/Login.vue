@@ -40,13 +40,13 @@
                                 Sign In</v-btn>   
                             </v-row>                                              
                         </v-card-actions>
-                        <v-row class="mt-8">
-                            <v-checkbox
+                        <v-row class="mt-8 text-center align-center justify-center">
+                            <!-- <v-checkbox
                                 v-model="rememberSelected"
                                 label="Remember Me"
                                 value="remember"
-                            ></v-checkbox>
-                            <a class="mt-5" @click="ForgotPassword">Forgot Password</a>
+                            ></v-checkbox> -->
+                            <a class="my-5" @click="ForgotPassword"><span style="color: blue; font-weight: bold; font-size: medium;">Forgot Password</span></a>
                         </v-row>                           
                     </v-form>
                 </v-card-text>
@@ -112,7 +112,7 @@ async function login(){
             {   username: username.value,
                 password: password.value };
             const response = await StoreApi.login(credentials);
-            console.log(response);
+            //console.log(response);
             if(response.status == 200){
                 piniaStore.loginSuccess = true;
                 if(response.data.role){
