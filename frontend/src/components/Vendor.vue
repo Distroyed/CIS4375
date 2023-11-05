@@ -445,7 +445,7 @@ async function submitAddOrEdit()
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-            else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Add or Edit Vendor. Please Contact IT For Support");
     }
     finally{
         addOrEditLoading.value = false;
@@ -494,7 +494,7 @@ async function submitDel(){
     }
     catch(error){
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-            else piniaStore.setSnackBar("Error In Deleting Account. Please Contact IT For Support");
+            else piniaStore.setSnackBar("Error In Deleting Vendor. Please Contact IT For Support");
     }   
 }
 
