@@ -155,10 +155,21 @@
                 <v-card-actions>
                     <v-btn
                     variant="flat"
+                    width="250"
+                    color="purple"
+                    class="mx-4"
+                    @click.prevent="goToReportHistory" 
+                    :loading="loading"
+                    prepend-icon="mdi-clipboard-text-clock-outline"
+                    >
+                    View Report History</v-btn>
+                    <v-btn
+                    variant="flat"
                     color="indigo"
-                    width="200"
+                    width="250"
                     class="mx-4"
                     @click="saveData"
+                    :disabled="piniaStore.currentRole == 'view'"
                     :loading="loading"
                     prepend-icon="mdi-content-save-outline">
                     Generate Report
@@ -166,10 +177,10 @@
                     <v-btn
                     variant="flat"
                     color="red"
-                    width="200"
+                    width="250"
                     class="mx-4"
                     @click="undo"
-                    :disabled="loading"
+                    :disabled="piniaStore.currentRole == 'view' || loading==true"
                     prepend-icon="mdi-cancel">
                     Undo Report
                     </v-btn>
@@ -351,10 +362,10 @@
                 </v-window>                
             <v-row justify="center" class="my-5">
                 <v-row justify="center" class="mt-8">
-                        <v-card-actions>
+                        <v-card-actions>                            
                             <v-btn
                             variant="flat"
-                            width="150"
+                            width="200"
                             color="green"
                             @click.prevent="exportToXLSX()" 
                             prepend-icon="mdi-microsoft-excel"
@@ -362,7 +373,7 @@
                             Export To XLSX</v-btn>
                             <v-btn
                             variant="flat"
-                            width="150"
+                            width="200"
                             color="blue"
                             @click.prevent="exportToCSV()" 
                             prepend-icon="mdi-microsoft-excel"
@@ -370,10 +381,10 @@
                             Export To CSV</v-btn>                            
                             <v-btn
                             variant="flat"
-                            width="150"
-                            color="indigo"
+                            width="200"
+                            color="red"
                             @click.prevent="Complete()" 
-                            prepend-icon="mdi-cancel"
+                            prepend-icon="mdi-restore"
                             >
                             Back To Order</v-btn>
                         </v-card-actions>
@@ -404,7 +415,7 @@ import { useRouter } from 'vue-router';
 import { useAppStore } from '@/store/app'
 import { ref, computed, watch, onBeforeMount } from 'vue';
 import StoreApi from '@/services/StoreApi';
-
+const router = useRouter();
 const piniaStore = useAppStore();
 const originalSushiItems = ref([])
 const originalProduceItem = ref([])
@@ -644,4 +655,7 @@ const exportToXLSX = () => {
       saveAs(blob, fileName);
     };
 
+function goToReportHistory(){
+    router.push({name: 'ReportHistory'});
+}
 </script>
