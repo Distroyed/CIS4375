@@ -95,6 +95,18 @@
         <!-- Add Account Dialog -->
         <v-dialog v-model="addOrEditDialog" persistent width="60%">
             <v-card>
+                <v-alert
+                    type="info"
+                    title="Account Role"   
+                    closable                 
+                    variant="tonal"
+                >
+                <ol>
+                    <li><span style="font-weight: bold;">Admin:</span> High Privileges. Can view, edit and delete all categories including Account, Vendor, Supply,...</li>
+                    <li><span style="font-weight: bold;">Edit:</span> Medium Privileges. Can view, edit and delete all categories except for Account</li>
+                    <li><span style="font-weight: bold;">View:</span> Lowest Privileges. Can only view certain categories like Vendor, Supply,...</li>
+                </ol>
+                </v-alert>
                 <v-row class="mt-4 justify-center align-center">
                         <v-card-title v-if="isAdd === 1">
                             Add New Account</v-card-title>
