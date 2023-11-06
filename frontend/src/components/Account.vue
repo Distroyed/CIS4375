@@ -331,6 +331,11 @@ const search = ref(null);
 const loading = ref(false)
 const itemsPerPage = ref(25);
 const piniaStore = useAppStore();
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+
 const headers = ref([
     { title: 'Action', align: 'center', key: 'Action'},
     { title: 'Username', align: 'left', key: 'username'  },
@@ -452,7 +457,7 @@ function getCurrentDateTimeString() {
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
-    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+    const customHeaders = {username: currentUserName, role: currentRole};
     if(valid && !passwordsDoNotMatch.value){
         try{
         addOrEditLoading.value = true;
@@ -466,7 +471,7 @@ async function submitAddOrEdit()
             const res =  await StoreApi.addAccount(accountItem.value, customHeaders );
             if(res.status === 200)
             {
-                accountItem.value.added_by = piniaStore.currentUserName;
+                accountItem.value.added_by = currentUserName;
                 accountItem.value.date_added = getCurrentDateTimeString();
                 piniaStore.setSnackBar("Account added successfully", true);
                 accountItem.value.account_id = res.data.account_id;
@@ -475,10 +480,9 @@ async function submitAddOrEdit()
             }
             else{
                 //Send Editted Account Info to Backend
-                accountItem.value.modified_by = piniaStore.currentUserName;
+                accountItem.value.modified_by = currentUserName;
                 const res =  await StoreApi.editAccount(accountItem.value, customHeaders);
                 if(res.status === 200) {
-                    accountItem.value.modified_by = piniaStore.currentUserName;
                     accountItem.value.date_modified = getCurrentDateTimeString();
                     const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
                     if (index !== -1) {
@@ -529,7 +533,7 @@ async function submitDel(){
     try{
         delLoading.value = true;
         //Send data to backend
-        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+        const customHeaders = {username: currentUserName, role: currentRole};
         const res = await StoreApi.delAccount(delAccount.value.account_id, customHeaders);
         if(res.status === 200){
             const index = displayItems.value.findIndex(i => i.account_id === delAccount.value.account_id);
