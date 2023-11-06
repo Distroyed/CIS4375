@@ -27,9 +27,8 @@
         Sushi
         </span> - <span class="font-weight-bold">Food Inventory Application </span></span> 
     </v-app-bar-title>
-    <span class="text-button mr-4" v-if="piniaStore.loginSuccess && piniaStore.currentUserName">Welcome, {{ piniaStore.currentUser }}</span>
-<!--     <span class="text-button mr-4">{{ winUser }}</span> -->
-<span class="text-button mr-4">{{ piniaStore.username }}</span>
+    <span class="text-button mr-4" v-if="loginSuccess && currentUserName">Welcome, {{ currentUser }}</span>
+<!-- <span class="text-button mr-4">{{ piniaStore.username }}</span> -->
     </v-app-bar>
         <v-navigation-drawer
           v-model="drawer"
@@ -62,6 +61,13 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 const piniaStore = useAppStore();
+
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+const currentUser = sessionStorage.getItem('currentUser');
+
 const drawer = ref(false);
 const menuItems = ref([
   {title : 'Home', icon : 'mdi-home'},  
@@ -85,7 +91,7 @@ async function selectedMenuItem(item){
       router.push({name: 'Vendor'});
       break;
     case 'Account':
-      if(piniaStore.currentRole === 'admin'){
+      if(currentRole === 'admin'){
         router.push({name: 'Account'});
         break;
       }
@@ -101,6 +107,8 @@ async function selectedMenuItem(item){
       piniaStore.currentRole='';
       piniaStore.currentUser='';
       piniaStore.currentUserName='';
+      piniaStore.clearAuthenticationStatus();
+
       router.push({name: 'Login'});
       break;
     default:
