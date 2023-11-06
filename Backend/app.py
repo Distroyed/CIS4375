@@ -329,16 +329,25 @@ def update_password():
     if not link_id or not account_id or not new_password:
         return jsonify({'message': 'Link ID, Account ID, and Password are required'}), 400
 
+    # Check is_expired value in LINK based on link_id
+    cursor.execute("SELECT username FROM ACCOUNT WHERE account_id = %s AND is_available = 1", (account_id,))
+    username_result = cursor.fetchone()
+
+    if username_result is not None:
+        username = username_result[0]
+    else:
+        return jsonify({'message': 'No matched account found'}), 400
+    
     # Hash the new password
     password_to_update = hashlib.sha256(new_password.encode()).hexdigest()
 
     # Update the password in the ACCOUNT table based on account_id
-    update_account_query = "UPDATE ACCOUNT SET password = %s WHERE account_id = %s"
-    cursor.execute(update_account_query, (password_to_update, account_id))
+    update_account_query = "UPDATE ACCOUNT SET password = %s, date_modified = NOW(), modified_by = %s WHERE account_id = %s"
+    cursor.execute(update_account_query, (password_to_update, username, account_id))
     link_up.commit()
 
     # Set is_updated and is_expired to 1 in LINK based on link_id
-    update_link_query = "UPDATE LINK SET is_updated = 1, is_expired = 1 WHERE link_id = %s"
+    update_link_query = "UPDATE LINK SET is_updated = 1, is_expired = 1, date_modified = NOW() WHERE link_id = %s"
     cursor.execute(update_link_query, (link_id,))
     link_up.commit()
 
@@ -570,7 +579,7 @@ def login():
 
     #query the database for the ACCOUNT password hash
     cursor = link_up.cursor(dictionary=True)
-    cursor.execute("SELECT password, role, fname, lname FROM ACCOUNT WHERE username = %s", (username,))
+    cursor.execute("SELECT password, role, fname, lname FROM ACCOUNT WHERE username = %s AND is_available = 1", (username,))
     result = cursor.fetchone()
 
     if result:
@@ -611,7 +620,7 @@ def forgotpassword():
     try:
         cursor = link_up.cursor(dictionary=True)
         #SQL query to retrieve the security question for the given username
-        cursor.execute("SELECT account_id, fname, lname FROM ACCOUNT WHERE username = %s", (username,))
+        cursor.execute("SELECT account_id, fname, lname FROM ACCOUNT WHERE username = %s AND is_available = 1", (username,))
         result = cursor.fetchone()
         account_id = result['account_id']
         fname = result['fname']
@@ -657,7 +666,7 @@ def forgot_password_answer():
 
     try:
         # SQL query to retrieve the security response for the given username
-        cursor.execute("SELECT username, sec_response FROM ACCOUNT WHERE account_id = %s", (account_id,))
+        cursor.execute("SELECT username, sec_response FROM ACCOUNT WHERE account_id = %s AND is_available = 1", (account_id,))
         result  = cursor.fetchone()
         username = result['username']
         security_response_db = result['sec_response']
@@ -752,7 +761,6 @@ def add_vendor():
     ordering_channel = data.get('ordering_channel')
     notes = data.get('notes')
     added_by = request.headers.get('username') # username is in the header
- 
     #if not vendor_name or not contact_name or not contact_phone or not email or not ordering_channel:
     #  return jsonify({'message': 'All fields are required'}), 400
 
@@ -860,7 +868,7 @@ def delete_account():
             if not account_id:
                 return jsonify({'message': 'account_id is required'}), 400
             #Soft Delete
-            soft_delete = "UPDATE ACCOUNT SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE account_id = %s"
+            soft_delete = "UPDATE ACCOUNT SET is_available = 0, date_modified = NOW(), modified_by = %s WHERE account_id = %s"
             cursor.execute(soft_delete, (current_user, account_id))
             return jsonify({'message': 'User account deleted successfully'}), 200
         
@@ -891,7 +899,7 @@ def delete_vendor():
             if not vendor_id:
                 return jsonify({'message': 'Vendor_id is required'}), 400
             #Soft Delete
-            soft_delete = "UPDATE VENDOR SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE vendor_id = %s"
+            soft_delete = "UPDATE VENDOR SET is_available = 0, date_modified = NOW(), modified_by = %s WHERE vendor_id = %s"
             cursor.execute(soft_delete, (current_user, vendor_id))
             return jsonify({'message': 'Vendor profile deleted successfully'}), 200
         
@@ -927,7 +935,7 @@ def delete_supply():
             if not supply_id:
                 return jsonify({'message': 'supply_id is required'}), 400
             #Soft Delete
-            soft_delete = "UPDATE SUPPLY SET is_available = '0', date_modified = NOW(), modified_by = %s WHERE supply_id = %s"
+            soft_delete = "UPDATE SUPPLY SET is_available = 0, date_modified = NOW(), modified_by = %s WHERE supply_id = %s"
             cursor.execute(soft_delete, (current_user, supply_id))
             return jsonify({'message': 'Supply profile deleted successfully'}), 200
         
