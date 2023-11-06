@@ -49,7 +49,6 @@ const routes = [
     name: 'ResetPassword',
     component: () => import('@/views/ResetPassword.vue'),
     beforeEnter: (to, from, next) => {
-      console.log(to)
       // Check if the 'id' parameter is present in the route
       if (to.params.id) {
         // If 'id' parameter is present, allow the navigation to the ResetPassword view
@@ -72,7 +71,7 @@ router.beforeEach((to, from, next) => {
   const piniaStore = useAppStore(); // Create an instance of your store
   if (to.matched.some((record) => record.meta.requiresAuth)) {
     // Check if the route requires authentication
-    if (piniaStore.loginSuccess) {
+    if (piniaStore.loginSuccess || sessionStorage.getItem('loginSuccess') === 'true') {
       // If loginSuccess is true, allow the navigation
       next();
     } else if (to.name !== 'Login') {
