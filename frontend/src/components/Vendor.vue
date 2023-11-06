@@ -51,7 +51,7 @@
                         color="green"
                         prepend-icon="mdi-plus"
                         size="small"
-                        v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                        v-if="currentRole == 'admin' || currentRole == 'edit'"
                         @click="addOrEditVendor()"
                         >
                             Add Vendor
@@ -86,7 +86,7 @@
                 color="green"
                 icon="mdi-pencil"
                 size="small"
-                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                v-if="currentRole == 'admin' || currentRole == 'edit'"
                 @click="addOrEditVendor(item)"
                 :disabled="loading">
             </v-icon>
@@ -95,7 +95,7 @@
                 color="red"
                 icon="mdi-trash-can"
                 size="small"
-                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                v-if="currentRole == 'admin' || currentRole == 'edit'"
                 @click="deleteVendor(item)"
                 :disabled="loading">
             </v-icon>  
@@ -292,6 +292,12 @@
 import { useAppStore } from '@/store/app'
 import { ref, computed, watch, onBeforeMount} from 'vue';
 import StoreApi from '@/services/StoreApi';
+
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+
 const search = ref(null);
 const loading = ref(false)
 const itemsPerPage = ref(25);
@@ -410,7 +416,7 @@ function getCurrentDateTimeString() {
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
-    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+    const customHeaders = {username: currentUserName, role: currentRole};
     if(valid){
         try{
         addOrEditLoading.value = true;
@@ -422,7 +428,7 @@ async function submitAddOrEdit()
             const res =  await StoreApi.addVendor(vendorItem.value, customHeaders);
             if(res.status === 200)
             {                
-                vendorItem.value.added_by = piniaStore.currentUserName;
+                vendorItem.value.added_by = currentUserName;
                 vendorItem.value.date_added = getCurrentDateTimeString();
                 piniaStore.setSnackBar("Vendor added successfully", true);
                 vendorItem.value.vendor_id = res.data.Vendor_id;
@@ -481,7 +487,7 @@ async function deleteVendor(item){
 async function submitDel(){
     try{
         delLoading.value = true;
-        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+        const customHeaders = {username: currentUserName, role: currentRole};
         //Send data to backend
         const res = await StoreApi.delVendor(delVendor.value.vendor_id, customHeaders);
         if(res.status === 200){
