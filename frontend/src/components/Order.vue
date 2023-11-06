@@ -169,7 +169,7 @@
                     width="250"
                     class="mx-4"
                     @click="saveData"
-                    :disabled="piniaStore.currentRole == 'view'"
+                    :disabled="currentRole == 'view'"
                     :loading="loading"
                     prepend-icon="mdi-content-save-outline">
                     Generate Report
@@ -180,7 +180,7 @@
                     width="250"
                     class="mx-4"
                     @click="undo"
-                    :disabled="piniaStore.currentRole == 'view' || loading==true"
+                    :disabled="currentRole == 'view' || loading==true"
                     prepend-icon="mdi-cancel">
                     Undo Report
                     </v-btn>
@@ -415,6 +415,12 @@ import { useRouter } from 'vue-router';
 import { useAppStore } from '@/store/app'
 import { ref, computed, watch, onBeforeMount } from 'vue';
 import StoreApi from '@/services/StoreApi';
+
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+
 const router = useRouter();
 const piniaStore = useAppStore();
 const originalSushiItems = ref([])
@@ -489,7 +495,7 @@ async function saveData(){
             report_group: groupID
         }));
         try{
-            const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+            const customHeaders = {username: currentUserName, role: currentRole};
             const res = await StoreApi.updateTransaction(finalReportWithID, customHeaders);
             if(res.status === 200){
                 piniaStore.setSnackBar("Report Created Successfully", true);
