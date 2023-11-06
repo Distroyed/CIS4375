@@ -25,6 +25,37 @@ export const useAppStore = defineStore('app', {
   },
   //action used to modify properties in state management
   actions: {
+    // Set authentication status and user data
+    setAuthenticationStatus({ loginSuccess, currentRole, currentUserName, currentUser }) {
+      this.loginSuccess = loginSuccess;
+      this.currentRole = currentRole;
+      this.currentUserName = currentUserName;
+      this.currentUser = currentUser
+      // Store authentication-related data in session storage
+      if (loginSuccess) {
+        sessionStorage.setItem('loginSuccess', 'true');
+        sessionStorage.setItem('currentRole', currentRole);
+        sessionStorage.setItem('currentUserName', currentUserName);
+        sessionStorage.setItem('currentUser', currentUser);
+      } else {
+        sessionStorage.removeItem('loginSuccess');
+        sessionStorage.removeItem('currentRole');
+        sessionStorage.removeItem('currentUserName');
+        sessionStorage.removeItem('currentUser');
+      }
+    },
+    // Clear authentication status and user data
+    clearAuthenticationStatus() {
+      this.loginSuccess = false;
+      this.currentRole = '';
+      this.currentUserName = '';
+
+      // Remove authentication-related data from session storage
+      sessionStorage.removeItem('loginSuccess');
+      sessionStorage.removeItem('currentRole');
+      sessionStorage.removeItem('currentUserName');
+      sessionStorage.removeItem('currentUser');
+    },
     setSnackBar (catchError, isSuccess) {
       this.isSuccess = isSuccess
       this.showSnackBar = true
