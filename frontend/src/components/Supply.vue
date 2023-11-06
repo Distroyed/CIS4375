@@ -62,7 +62,7 @@
                             prepend-icon="mdi-plus"
                             size="small"
                             class="mr-5"
-                            v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                            v-if="currentRole == 'admin' || currentRole == 'edit'"
                             @click="addOrEditSupply()"
                             >
                                 Add More
@@ -105,7 +105,7 @@
                 color="green"
                 icon="mdi-pencil"
                 size="small"
-                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                v-if="currentRole == 'admin' || currentRole == 'edit'"
                 @click="addOrEditSupply(item)"
                 :disabled="loading">
             </v-icon>   
@@ -114,7 +114,7 @@
                 color="red"
                 icon="mdi-trash-can"
                 size="small"
-                v-if="piniaStore.currentRole == 'admin' || piniaStore.currentRole == 'edit'"
+                v-if="currentRole == 'admin' || currentRole == 'edit'"
                 @click="deleteSupply(item)"
                 :disabled="loading">
             </v-icon>  
@@ -333,6 +333,12 @@
 import { useAppStore } from '@/store/app'
 import { ref, computed, watch, onBeforeMount, provide } from 'vue';
 import StoreApi from '@/services/StoreApi';
+
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+
 const search = ref(null);
 const loading = ref(false)
 const itemsPerPage = ref(25);
@@ -471,7 +477,7 @@ async function addOrEditSupply(item){
 async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
-    const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+    const customHeaders = {username: currentUserName, role: currentRole};
     if(valid){
         try{
         addOrEditLoading.value = true;
@@ -486,7 +492,7 @@ async function submitAddOrEdit()
             {
                 //GET RETURN ID
                 supplyItem.value.supply_id = res.data.Supply_id;
-                supplyItem.value.added_by = piniaStore.currentUserName;
+                supplyItem.value.added_by = currentUserName;
                 supplyItem.value.date_added = getCurrentDateTimeString();
                 supplyItem.value.item_type_desc = itemType.value.find(item => item.item_type_id = supplyItem.value.item_type_id);
                 piniaStore.setSnackBar("Supply added successfully", true);
@@ -495,10 +501,10 @@ async function submitAddOrEdit()
         }
         else{
             //Send Editted Supply Info to Backend
-            supplyItem.value.modified_by = piniaStore.currentUserName;
+            supplyItem.value.modified_by = currentUserName;
             const res =  await StoreApi.editSupply(supplyItem.value, customHeaders);
             if(res.status === 200) {
-                supplyItem.value.modified_by = piniaStore.currentUserName;
+                supplyItem.value.modified_by = currentUserName;
                 supplyItem.value.date_modified = getCurrentDateTimeString();
                 const index = allSupply.value.findIndex(obj => obj.supply_id === supplyItem.value.supply_id);
                 if (index !== -1) {
@@ -547,7 +553,7 @@ async function deleteSupply(item){
 }
 async function submitDel(){
     try{
-        const customHeaders = {username: piniaStore.currentUserName, role: piniaStore.currentRole};
+        const customHeaders = {username: currentUserName, role: currentRole};
         delLoading.value = true;
         //Send data to backend
         const res = await StoreApi.delSupply(delSupply.value.supply_id, customHeaders);
