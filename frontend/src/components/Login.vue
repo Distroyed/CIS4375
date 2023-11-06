@@ -74,13 +74,10 @@ import StoreApi from '@/services/StoreApi';
 const piniaStore = useAppStore();
 const router = useRouter();
 const showPassword = ref(false);
-const rememberSelected = ref(false);
 const username = ref();
 const password = ref();
 const loading = ref(false);
 const loginForm=ref(null);
-const storeUsername = piniaStore.username;
-const storePassword = piniaStore.password;
 const passwordRule = [
   value => {
     // Check for empty value
@@ -112,14 +109,13 @@ async function login(){
             {   username: username.value,
                 password: password.value };
             const response = await StoreApi.login(credentials);
-            //console.log(response);
             if(response.status == 200){
-                piniaStore.loginSuccess = true;
-                if(response.data.role){
-                    piniaStore.currentRole = response.data.role;
-                }
-                piniaStore.currentUserName = username.value;    
-                piniaStore.currentUser = response.data.fname + response.data.lname;  
+                piniaStore.setAuthenticationStatus({
+                    loginSuccess: true,
+                    currentRole: response.data.role,
+                    currentUserName: username.value,
+                    currentUser:  response.data.fname + response.data.lname                  
+                });
                 router.push({name: 'Home'})
             }
         }
