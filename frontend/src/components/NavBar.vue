@@ -28,13 +28,12 @@
         </span> - <span class="font-weight-bold">Food Inventory Application </span></span> 
     </v-app-bar-title>
     <span class="text-button mr-4" v-if="loginSuccess && currentUserName">Welcome, {{ currentUser }}</span>
-<!-- <span class="text-button mr-4">{{ piniaStore.username }}</span> -->
     </v-app-bar>
         <v-navigation-drawer
           v-model="drawer"
           location="left"
           temporary
-          v-if="piniaStore.loginSuccess"
+          v-if="loginSuccess"
         >
         <v-list nav>
             <v-list-item
