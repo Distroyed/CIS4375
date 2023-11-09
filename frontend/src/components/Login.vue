@@ -123,9 +123,10 @@ async function login(){
         {
             if(error.response.status === 404 || error.response.status === 401){
                 errorLogin.value = true;
+                piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
             }
             //if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
-            else if(error.response.status !== 200) piniaStore.setSnackBar("Error In Assigning Account Owner. Please Contact IT For Support");
+            else if(error.response.status !== 200) piniaStore.setSnackBar("Error In Logging In. Please Contact IT For Support");
         }
         finally{
             loading.value = false;
