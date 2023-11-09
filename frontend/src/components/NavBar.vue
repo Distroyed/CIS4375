@@ -33,7 +33,7 @@
           v-model="drawer"
           location="left"
           temporary
-          v-if="sessionStorage.getItem('loginSuccess') == true"
+          v-if="loginSuccess"
         >
         <v-list nav>
             <v-list-item
@@ -56,17 +56,21 @@
 <script setup>
 import { useAppStore } from '@/store/app';
 const store = useAppStore();
-import { ref } from 'vue';
+import { ref, computed  } from 'vue';
 import { useRouter } from 'vue-router';
 const router = useRouter();
 const piniaStore = useAppStore();
 
 //retrieve data from session storage
-const loginSuccess = sessionStorage.getItem('loginSuccess');
+/* const loginSuccess = sessionStorage.getItem('loginSuccess');
 const currentUserName = sessionStorage.getItem('currentUserName');
 const currentRole = sessionStorage.getItem('currentRole');
-const currentUser = sessionStorage.getItem('currentUser');
+const currentUser = sessionStorage.getItem('currentUser'); */
 
+const currentUser = computed(() => piniaStore.currentUser);
+const loginSuccess = computed(() => piniaStore.loginSuccess);
+const currentUserName = computed(() => piniaStore.currentUserName);
+const currentRole = computed(() => piniaStore.currentRole);
 const drawer = ref(false);
 const menuItems = ref([
   {title : 'Home', icon : 'mdi-home'},  
@@ -90,7 +94,8 @@ async function selectedMenuItem(item){
       router.push({name: 'Vendor'});
       break;
     case 'Account':
-      if(currentRole === 'admin'){
+      console.log(currentRole);
+      if(currentRole.value === 'admin'){
         router.push({name: 'Account'});
         break;
       }

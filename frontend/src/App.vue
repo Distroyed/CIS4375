@@ -12,7 +12,16 @@
 
 <script setup>
  import NavBar from './components/NavBar'
-
+ const store = useAppStore();
+ import { useAppStore } from '@/store/app';
+// Check if user data exists in session storage and initialize the store
+const currentUserName = (sessionStorage.getItem('currentUserName'));
+const currentUser = (sessionStorage.getItem('currentUser'));
+const currentRole = (sessionStorage.getItem('currentRole'));
+const loginSuccess = (sessionStorage.getItem('loginSuccess'));
+if (loginSuccess) {
+  store.initializeUserData(currentUserName, currentUser, currentRole, loginSuccess);
+}
 
  </script>
 

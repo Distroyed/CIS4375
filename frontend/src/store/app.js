@@ -25,6 +25,12 @@ export const useAppStore = defineStore('app', {
   },
   //action used to modify properties in state management
   actions: {
+    initializeUserData(currentUserName, currentUser, currentRole, loginSuccess) {
+      this.loginSuccess = loginSuccess;
+      this.currentRole = currentRole;
+      this.currentUserName = currentUserName;
+      this.currentUser = currentUser
+    },
     // Set authentication status and user data
     setAuthenticationStatus({ loginSuccess, currentRole, currentUserName, currentUser }) {
       this.loginSuccess = loginSuccess;

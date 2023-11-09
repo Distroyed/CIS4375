@@ -76,6 +76,11 @@ const views = ref([
   {title : 'Account', icon : 'mdi-account-box-outline', desc : 'View and Manage Account.', color : '#E53935', buttonLabel :'Get Started'},
   {title : 'Order', icon : 'mdi-clipboard-list-outline', desc : 'Order Supply.', color : '#5E35B1', buttonLabel :'Get Started'}
 ]);
+//retrieve data from session storage
+const loginSuccess = sessionStorage.getItem('loginSuccess');
+const currentUserName = sessionStorage.getItem('currentUserName');
+const currentRole = sessionStorage.getItem('currentRole');
+const currentUser = sessionStorage.getItem('currentUser');
 async function switchViews(id){
   switch(id){
       case 0:
@@ -85,7 +90,7 @@ async function switchViews(id){
           router.push({name : 'Vendor'});
           break;
       case 2:
-        if(piniaStore.currentRole === 'admin'){
+        if(currentRole === 'admin'){
             router.push({name : 'Account'});
             break;
         }
