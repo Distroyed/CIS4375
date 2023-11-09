@@ -33,7 +33,7 @@
           v-model="drawer"
           location="left"
           temporary
-          v-if="loginSuccess"
+          v-if="sessionStorage.getItem('loginSuccess') == true"
         >
         <v-list nav>
             <v-list-item
