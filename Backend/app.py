@@ -660,7 +660,7 @@ def forgotpassword():
             link_up.commit()
 
             # Send an email to the user with the reset link http://localhost:3000/reset-password/{link_id}
-            reset_link = f'http://7fridaysushi-inventory-frontend.s3-website.us-east-2.amazonaws.com/reset-password/{link_id}' 
+            reset_link = f'http://7fridaysushi-inventory-frontend.s3-website.us-east-2.amazonaws.com/reset-password?id={link_id}' 
 
             # The code for sending the email is similar to the code you provided in the first set.
             # You can use that code to send the email here, just replace the reset link with the one you generated.
