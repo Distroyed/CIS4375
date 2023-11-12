@@ -45,20 +45,20 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/reset-password/:id',
+    path: '/reset-password',
     name: 'ResetPassword',
     component: () => import('@/views/ResetPassword.vue'),
     beforeEnter: (to, from, next) => {
-      // Check if the 'id' parameter is present in the route
-      if (to.params.id) {
-        // If 'id' parameter is present, allow the navigation to the ResetPassword view
+      if (to.query.id) {
+        console.log(to.query.id);
+        // If 'id' query parameter is present, allow the navigation to the ResetPassword view
         next();
       } else {
-        // If 'id' parameter is not present, redirect to the login page
+        // If 'id' query parameter is not present, redirect to the login page
         next({ name: 'Login' });
       }
     },
-  },
+  }
 ];
 
 const router = createRouter({
@@ -77,14 +77,16 @@ router.beforeEach((to, from, next) => {
     } else if (to.name !== 'Login') {
       // If not authenticated and not already on the login page, redirect to the login page
       next({ name: 'Login' });
-    } else {
+    } /* else if(to.name === 'ResetPassword' && to.query.id) {
+      next({ name: 'ResetPassword', params: {id: to.query.id}});
+    } */
+    else {
       // Otherwise, allow the navigation to the login page
       next();
     }
   } else {
     // For routes that do not require authentication, allow the navigation
     next();
-
   }
 });
 

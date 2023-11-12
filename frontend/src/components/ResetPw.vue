@@ -104,7 +104,8 @@ import { useRoute, useRouter } from 'vue-router';
 import StoreApi from '@/services/StoreApi';
 const router = useRouter();
 const route = useRoute();
-const linkID = route.params.id;
+const linkID = route.query.id;
+console.log(linkID);
 const badID = ref(false);
 const piniaStore = useAppStore();
 const confirmPassword = ref(null)
