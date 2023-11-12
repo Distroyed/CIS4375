@@ -126,7 +126,7 @@
                                 <v-col cols="4">
                                     <v-text-field
                                     v-model="accountItem.username"
-                                    label="Email"
+                                    label="Email - Username"
                                     color="primary"
                                     type="email"
                                     :rules="emailRule"
@@ -204,11 +204,11 @@
                                     </v-col>
                                     <v-col cols="6">
                                         <v-text-field
-                                        v-model="accountItem.new_password"
+                                        v-model="repeatPassword"
                                         label="Confirm Password"
                                         type="password"
                                         color="primary"
-                                        :rules="[ v => !!v || 'Password is required']"
+                                        :rules="[ v => !!v && v.length >= 6 || 'Password must be at least 6 characters']"
                                         variant="underlined"></v-text-field>
                                     </v-col>                                    
                                 </v-row>
@@ -238,11 +238,11 @@
                                     </v-col>
                                     <v-col cols="6">
                                         <v-text-field
-                                        v-model="accountItem.new_password"
+                                        v-model="repeatPassword"
                                         label="Confirm Password"
                                         type="password"
                                         color="primary"
-                                        :rules="[ v => !!v || 'Password is required']"
+                                        :rules="[ v => !!v && v.length >= 6 || 'Password must be at least 6 characters']"
                                         variant="underlined"></v-text-field>
                                     </v-col>                                    
                                 </v-row>
@@ -260,7 +260,7 @@
                                     color="green"
                                     width="150"
                                     @click.prevent="submitAddOrEdit()"
-                                    :disabled="passwordsDoNotMatch"
+                                    :disabled="resetPw && passwordsDoNotMatch"
                                     :loading="addOrEditLoading"
                                     prepend-icon="mdi-content-save-outline">
                                     Save
@@ -354,7 +354,6 @@ const displayItems = ref([]);
 onBeforeMount(async () => {
     try{
         const res = await StoreApi.getAccount();
-        //console.log(res);
         if(res.status === 200){
             displayItems.value = [...res.data];
         }
@@ -432,7 +431,8 @@ const securityQuestions = ref([
 
 //Reset Password
 const resetPw = ref(false);
-const passwordsDoNotMatch = computed(() => accountItem.value.password !== accountItem.value.new_password)
+const repeatPassword = ref();
+const passwordsDoNotMatch = computed(() => accountItem.value.password !== repeatPassword.value)
 function getCurrentDateTimeString() {
   const months = [
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
@@ -458,10 +458,13 @@ async function submitAddOrEdit()
 {
     const {valid} = await addOrEditForm.value.validate();
     const customHeaders = {username: currentUserName, role: currentRole};
-    if(valid && !passwordsDoNotMatch.value){
+    if(resetPw.value && !passwordsDoNotMatch.value){
+        piniaStore.setSnackBar("Password Don't Match");
+    }
+    if(valid ){
         try{
         addOrEditLoading.value = true;
-        const usernameDuplicated = displayItems.value.some((obj) => obj.username === accountItem.value.username);
+        const usernameDuplicated = displayItems.value.some((obj) => obj.username === accountItem.value.username && obj.account_id !== accountItem.value.account_id);
         if(usernameDuplicated){
             piniaStore.setSnackBar("Username has been used, please use a different one!");
         }
@@ -475,15 +478,20 @@ async function submitAddOrEdit()
                 accountItem.value.date_added = getCurrentDateTimeString();
                 piniaStore.setSnackBar("Account added successfully", true);
                 accountItem.value.account_id = res.data.account_id;
+                delete accountItem.value.password;
                 displayItems.value.push(accountItem.value);
             }            
             }
             else{
                 //Send Editted Account Info to Backend
                 accountItem.value.modified_by = currentUserName;
+                if(resetPw.value === false){
+                    delete accountItem.value.password;
+                }
                 const res =  await StoreApi.editAccount(accountItem.value, customHeaders);
                 if(res.status === 200) {
                     accountItem.value.date_modified = getCurrentDateTimeString();
+                    delete accountItem.value.password;
                     const index = displayItems.value.findIndex(obj => obj.account_id === accountItem.value.account_id);
                     if (index !== -1) {
                         displayItems.value[index] = accountItem.value;
@@ -495,7 +503,12 @@ async function submitAddOrEdit()
         }            
     }
     catch(error){
-        if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+        if(error.response.status === 415) {
+            piniaStore.setSnackBar(error.response.data.message + ". Please Use A Different Username - Email");
+        }
+        else if(error.message){
+            piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+        }        
             else piniaStore.setSnackBar("Error In Add or Edit Account. Please Contact IT For Support");
     }   
     finally{
@@ -511,7 +524,10 @@ async function submitAddOrEdit()
 function closeAddOrEdit(){
     isAdd.value = -1;
     accountItem.value = {};
+    repeatPassword.value = '';
+    passwordsDoNotMatch.value = false;
     addOrEditDialog.value = false;
+    resetPw.value = false;
     addOrEditForm.value.reset();
     addOrEditForm.value.resetValidation();
 }

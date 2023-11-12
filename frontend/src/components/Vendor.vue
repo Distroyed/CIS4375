@@ -324,7 +324,6 @@ onBeforeMount(async () => {
         const res = await StoreApi.getVendor();
         if(res.status === 200){
             displayItems.value = [...res.data];
-            //console.log(displayItems.value)
         }
         const resState = await StoreApi.getState();
         if(resState.status === 200){
@@ -449,8 +448,13 @@ async function submitAddOrEdit()
         
         closeAddOrEdit();
     }
-    catch(error){
-        if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+    catch(error){        
+        if(error.response.status === 415) {
+            piniaStore.setSnackBar(error.response.data.message + ". Please Use A Different Vendor Name");
+        }
+        else if(error.message){
+            piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
+        }        
             else piniaStore.setSnackBar("Error In Add or Edit Vendor. Please Contact IT For Support");
     }
     finally{

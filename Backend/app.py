@@ -110,6 +110,8 @@ def getAccountAll () :
                 "lname": user.get("lname", ""),  
                 "phone": user.get("phone", ""),  
                 "role": user["role"],
+                "sec_question": user.get("sec_question", ""), 
+                "sec_response": user.get("sec_response", ""), 
                 "date_added": user.get("date_added", ""),  
                 "added_by": user.get("added_by", ""),  
                 "date_modified": user.get("date_modified", ""),  
@@ -363,10 +365,17 @@ def edit_vendor():
         try:
             data = request.get_json()
             vendor_id = data.get('vendor_id')
-
+            vendor_name = data.get('vendor_name')
             if not vendor_id:
                 return jsonify({'message': 'Vendor_id is required'}), 400
 
+            test_query = "SELECT * FROM VENDOR WHERE vendor_name = %s AND vendor_id != %s"
+            cursor.execute(test_query, (vendor_name, vendor_id,))
+            # Fetch the result
+            result = cursor.fetchone()
+            if result is not None:
+                return jsonify({'message' : 'Duplicate Vendor Name'}), 415
+            
             # SQL query to update the vendor in the 'VENDOR' table
             update_query = "UPDATE VENDOR SET vendor_name = %s, address = %s, city = %s, state_id = %s, ZIP = %s, " \
                         "contact_name = %s, contact_phone = %s, order_phone = %s, email = %s, ordering_channel = %s, " \
@@ -472,29 +481,46 @@ def edit_account():
         try:
             data = request.get_json()
             account_id = data.get('account_id')
-
+            username = data.get('username')
             if not account_id:
                 return jsonify({'message': 'account_id is required'}), 400
+            
+            test_query = "SELECT * FROM ACCOUNT WHERE username = %s AND account_id != %s"
+            cursor.execute(test_query, (username, account_id,))
+            # Fetch the result
+            result = cursor.fetchone()
+            if result is not None:
+                return jsonify({'message' : 'Duplicate Account Username - Email'}), 415
+            
+            # Check if password is provided
+            if 'password' in data:
+                password = hashlib.sha256(data['password'].encode()).hexdigest()
+            else:
+                password = None
 
-            # SQL query to update the vendor in the 'VENDOR' table
-            update_query = "UPDATE ACCOUNT SET username = %s, password = %s, fname = %s, lname = %s, phone = %s, " \
-                        "role = %s, sec_question = %s, sec_response = %s, " \
-                        "date_modified = NOW() , modified_by = %s  WHERE account_id = %s AND is_available = 1 "
-
+            # SQL query to update the account in the 'ACCOUNT' table
+            update_query = "UPDATE ACCOUNT SET "
+            if password is not None:
+                update_query += "password = %s, "
+            
+            update_query += "username = %s, fname = %s, lname = %s, phone = %s, role = %s, " \
+                           "sec_question = %s, sec_response = %s, " \
+                           "date_modified = NOW(), modified_by = %s " \
+                           "WHERE account_id = %s AND is_available = 1"
+            
+            # Build a list of values to update
+            values = []
+            
+            if password is not None:
+                values.append(password)
+            
+            values.extend([data.get('username'),data.get('fname'), data.get('lname'), data.get('phone'),
+                           data.get('role'), data.get('sec_question'), data.get('sec_response'),
+                           current_user, account_id])
+            
             # Execute the SQL query with the provided data
-            cursor.execute(update_query, (
-                data.get('username'),
-                hashlib.sha256(data.get('password').encode()).hexdigest(),
-                data.get('fname'),
-                data.get('lname'),
-                data.get('phone'),
-                data.get('role'),
-                data.get('sec_question'),
-                data.get('sec_response'),
-                current_user,
-                account_id
-            ))
-
+            cursor.execute(update_query, values)
+            
             # Commit the transaction to save the changes in the database
             link_up.commit()
 
@@ -505,8 +531,7 @@ def edit_account():
             return jsonify({'message': f'Failed to update Account: {str(e)}'}), 500
     else:
         return jsonify({'message': 'Permission denied'}), 403  # Forbidden
-    # Update SUPPLY table and add a new row to TRANSACTION table
-
+    
 @app.route('/order', methods=['PUT'])
 def order():
     data = request.get_json()
@@ -718,6 +743,13 @@ def add_account():
     # Verify role is admin
     if current_role == 'admin':
         try:
+            test_query = "SELECT * FROM ACCOUNT WHERE username = %s"
+            cursor.execute(test_query, (username,))
+            # Fetch the result
+            result = cursor.fetchone()
+            if result is not None:
+                return jsonify({'message' : 'Duplicate Account Username - Email'}), 415
+            
             # Hash the password using a secure hash function like SHA-256
             hashed_password = hashlib.sha256(password.encode()).hexdigest()
 
@@ -773,6 +805,13 @@ def add_vendor():
     # Check if the current user has the 'Admin' or 'Edit' role
     if current_role == 'admin' or current_role == 'edit':
         try:
+            test_query = "SELECT * FROM VENDOR WHERE vendor_name = %s"
+            cursor.execute(test_query, (vendor_name,))
+            # Fetch the result
+            result = cursor.fetchone()
+            if result is not None:
+                return jsonify({'message' : 'Duplicate Vendor Name'}), 415
+
             # SQL query to insert the vendor into the 'VENDOR' table
             insert_query = "INSERT INTO VENDOR (vendor_name, address, city, state_id, ZIP, contact_name, contact_phone, order_phone, email, ordering_channel, notes, added_by) " \
                         "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"

@@ -114,7 +114,7 @@ async function login(){
                     loginSuccess: true,
                     currentRole: response.data.role,
                     currentUserName: username.value,
-                    currentUser:  response.data.fname + response.data.lname                  
+                    currentUser:  response.data.fname + ' ' + response.data.lname                  
                 });
                 router.push({name: 'Home'})
             }

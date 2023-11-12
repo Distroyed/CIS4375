@@ -22,18 +22,21 @@
     </v-row>
     <v-row justify="center" class="mt-10">
         <v-col cols="4">
-        <v-autocomplete
+        <v-select
         v-model="selectSupplyType"
         label="Select Supply Type"
         color="primary"
         density="compact"
         variant="underlined"
-        item-title="item_type_desc"
-        item-value="item_type_id"
-        :items="itemType"
+        item-title="typedesc"
+        item-value="typeid"
+        :items="[{typeid:1, typedesc:'Sushi'}, {typeid: 2, typedesc:'Produce'}, {typeid: 3, typedesc:'Other'}]"
         prepend-icon="mdi-format-list-bulleted-type"
-        clearable></v-autocomplete>
+        :key="selectSupplyType"
+        ></v-select>
+        
     </v-col>
+    
     </v-row>
     <Transition name="fade" mode="out-in">
     <v-card v-if="selectSupplyType">
@@ -229,19 +232,18 @@
                             </v-row>          
                             <v-row class="mx-6 justify-center align-center">
                                 <v-col cols="6">
-                                    <v-autocomplete
+                                    <v-select
                                     v-model="supplyItem.item_type_id"
                                     label="Select Supply Type"
-                                    :items="itemType"
+                                    :items="[{id:1, desc:'Sushi'}, {id: 2, desc:'Produce'}, {id: 3, desc:'Other'}]"
                                     color="primary"
                                     density="compact"
                                     variant="underlined"
-                                    prepend-icon="mdi-format-list-bulleted-type"
-                                    clearable
-                                    item-title="item_type_desc"
-                                    item-value="item_type_id"
+                                    prepend-icon="mdi-format-list-bulleted-type"                                    
+                                    item-title="desc"
+                                    item-value="id"
                                     :rules="[ v => !!v || 'Supply Type is required']"
-                                    ></v-autocomplete>
+                                    ></v-select>
                                 </v-col>
                                 <v-col cols="6">
                                     <v-autocomplete
@@ -346,7 +348,7 @@ const piniaStore = useAppStore();
 const headers = ref([
     { title: 'Action', align: 'center', key: 'Action'},
     { title: 'Item Name', align: 'left', key: 'item_name'  },
-    { title: 'Price', align: 'left', key: 'price'  },
+    { title: 'Current Price', align: 'left', key: 'price'  },
     { title: 'Reorder Amount', align: 'left', key: 'reorder_point'},
     { title: 'Vendor', align: 'left', key: 'vendor_name' },
     { title: 'Note', align: 'left', key: 'notes' },  
@@ -362,9 +364,10 @@ const displayItems = computed(() =>{
     else if(selectSupplyType.value === 2){
         return produceItem.value;
     }
-    else{
+    else if(selectSupplyType.value === 3){
         return otherItems.value;
     }
+    else {return null}
 });
 function getCurrentDateTimeString() {
   const months = [
@@ -384,19 +387,26 @@ function getCurrentDateTimeString() {
 }
 const selectSupplyType = ref();
 const itemType = ref([]);
+const itemTypeAddOrEdit = ref([]);
 const vendor = ref([]);
-const allSupply = ref([])
+const allSupply = ref([]);
+const sushiItems = ref([]);
+const produceItem = ref([]);
+const otherItems = ref([]);
 //Fetch Data to table
 onBeforeMount(async () => {
     try{
         const res = await StoreApi.getSupply();
         if(res.status === 200){
             allSupply.value = res.data;
-            //console.log(displayItems.value)
             sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
             produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
             otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
-            itemType.value = (await StoreApi.getItemType()).data;
+            const res2 = (await StoreApi.getItemType());
+            if(res2.status === 200){
+                itemType.value = [...res2.data];
+                itemTypeAddOrEdit.value = [...res2.data];
+            }
         }
         
         vendor.value = (await StoreApi.getVendor()).data;
@@ -408,15 +418,6 @@ onBeforeMount(async () => {
         else piniaStore.setSnackBar("Error in getting Supply Data. Please contact IT for support");
     }
 });
-const sushiItems = computed(() => {
-      return allSupply.value.filter((item) => item.item_type_id === 1);
-    });
-const produceItem = computed(() => {
-      return allSupply.value.filter((item) => item.item_type_id === 2);
-    });
-const otherItems = computed(() => {
-      return allSupply.value.filter((item) => item.item_type_id === 3);
-    });
 
 //View Price History
 const priceHistItem = ref([]);
@@ -427,7 +428,6 @@ async function viewPriceHist(item){
         if(item){
             const res = await StoreApi.getPriceBySupplyID(item.raw.supply_id);
             if(res.status === 200){
-                //console.log(res.data);
                 priceHistItem.value = res.data;
                 const xAxisData = priceHistItem.value.map(item => {
                     const date = new Date(item.modified_date);
@@ -513,7 +513,12 @@ async function submitAddOrEdit()
                 piniaStore.setSnackBar("Supply modified successfully", true);
             }
         }
-        
+        sushiItems.value.length = 0;
+        produceItem.value.length = 0;
+        otherItems.value.length = 0;
+        sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
+        produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
+        otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
         closeAddOrEdit();
     }
     catch(error){
@@ -545,7 +550,6 @@ async function deleteSupply(item){
     if(item){
         delDialog.value = true;
         delSupply.value = Object.assign({}, item.raw);
-        //console.log(delSupply.value);
     }    
     else{
         piniaStore.setSnackBar("An error occurs, please contact IT for support!");
@@ -559,7 +563,15 @@ async function submitDel(){
         const res = await StoreApi.delSupply(delSupply.value.supply_id, customHeaders);
         if(res.status === 200){
             const index = allSupply.value.findIndex(i => i.supply_id === delSupply.value.supply_id);
-            allSupply.value.splice(index, 1);
+            if (index !== -1) {
+                    allSupply.value.splice(index, 1);
+                    sushiItems.value.length = 0;
+                    produceItem.value.length = 0;
+                    otherItems.value.length = 0;
+                    sushiItems.value = allSupply.value.filter((item) => item.item_type_id === 1);
+                    produceItem.value = allSupply.value.filter((item) => item.item_type_id === 2);
+                    otherItems.value = allSupply.value.filter((item) => item.item_type_id === 3);
+                }
             piniaStore.setSnackBar("Supply deleted successfully", true);
         }            
         delLoading.value = false;
@@ -581,7 +593,7 @@ function exportCSV(){
             'Item Name',
             'Quantity',
             'Reorder Point',
-            'Price',
+            'Current Price',
             'Note',
             'Vendor',
             'Added By',

@@ -80,6 +80,10 @@ const menuItems = ref([
   {title : 'Order', icon : 'mdi-clipboard-list-outline'},
   {title : 'LogOut', icon : 'mdi-logout'},
 ]);
+
+async function goHome(){
+  router.push({name: 'Home'});
+}
 //Function to handle menu item selection
 async function selectedMenuItem(item){
   switch(item.title)
@@ -94,7 +98,6 @@ async function selectedMenuItem(item){
       router.push({name: 'Vendor'});
       break;
     case 'Account':
-      console.log(currentRole);
       if(currentRole.value === 'admin'){
         router.push({name: 'Account'});
         break;
