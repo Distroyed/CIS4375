@@ -72,7 +72,7 @@ def timelimit_link(link_id):
 
         if is_expired == 1:
             # Link is expired
-            return jsonify({'message': 'Link is expired'}), 400
+            return jsonify({'message': 'Link is expired'}), 205
 
         elif is_expired == 0:
             if date_added is not None and current_time > (date_added + timedelta(days=1)):

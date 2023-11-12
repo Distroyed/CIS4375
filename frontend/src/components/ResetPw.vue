@@ -12,6 +12,8 @@
         <v-row v-if="!loading && badID && resetPassword!=1">
             <v-alert
                 color="error"
+                type="error"
+                title="Link Error"
                 icon="$error"
                 text="This link is either expired or wrong, please request a new link to reset password."
             ></v-alert>
@@ -130,6 +132,7 @@ onBeforeMount( async () =>{
     }
     catch(error)
     {
+        badID.value = true;
         if(error.response) piniaStore.setSnackBar(error.message + ". Please Contact IT For Support");
         else piniaStore.setSnackBar("Error In Loading Page. Please Contact IT For Support");        
     }
