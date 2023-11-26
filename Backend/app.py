@@ -31,6 +31,15 @@ my_creds = creds.Creds() #access my class called creds in the credy.py file
 link_up = create_connection(my_creds.conString, my_creds.userName, my_creds.password, my_creds.dbName)
 cursor = link_up.cursor(dictionary = True)
 
+# configuration of mail 
+app.config['MAIL_SERVER']='smtp.gmail.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USERNAME'] = '7fridaysushi@gmail.com' #sponsor email
+app.config['MAIL_PASSWORD'] = 'yxzr jxig gzmv whqk' #sponsor password
+app.config['MAIL_USE_TLS'] = False
+app.config['MAIL_USE_SSL'] = True
+mail = Mail(app) 
+
 ################################################################################################################################## GET APIS ##################################################################################################################################################
 
 #uses the GET command to see if postman can verify the server connects
@@ -582,7 +591,13 @@ def order():
 
             # Commit the transaction to save the changes in the database
             link_up.commit()
-
+            msg = Message( 
+                '7Friday Sushi - A new report has been generated', 
+                sender ='7fridaysushi@gmail.com',  
+                recipients = 'vnguyen@7fridaysushi.com' 
+               ) 
+            msg.body = f"Hello Nguyen,\n\n A new report has been generated with ID: {report_group} by {current_user}. \n\nNotice: This is just a notification, please use the application to view the report detail!"
+            mail.send(msg) 
             return jsonify({'message': 'Orders processed successfully'}), 200
 
         except Exception as e:
@@ -624,14 +639,7 @@ def login():
     else:
         return jsonify({'message': 'User not found'}), 404
 
-# configuration of mail 
-app.config['MAIL_SERVER']='smtp.gmail.com'
-app.config['MAIL_PORT'] = 465
-app.config['MAIL_USERNAME'] = '7fridaysushi@gmail.com' #sponsor email
-app.config['MAIL_PASSWORD'] = 'yxzr jxig gzmv whqk' #sponsor password
-app.config['MAIL_USE_TLS'] = False
-app.config['MAIL_USE_SSL'] = True
-mail = Mail(app) 
+
 
 # Get security question for ACCOUNT table
 @app.route('/forgotpassword', methods=['POST'])
@@ -663,7 +671,6 @@ def forgotpassword():
             reset_link = f'http://7fridaysushi-inventory-frontend.s3-website.us-east-2.amazonaws.com/reset-password?id={link_id}' 
 
             # The code for sending the email is similar to the code you provided in the first set.
-            # You can use that code to send the email here, just replace the reset link with the one you generated.
             msg = Message( 
                 '7Friday Sushi - Reset Password', 
                 sender ='7fridaysushi@gmail.com',  #should be the sponsor email address
